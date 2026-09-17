@@ -1,640 +1,1726 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GKS Campus Bridge | International Student AI Platform</title>
-  
-  <!-- Tailwind CSS & Lucide Icons -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GKS Campus Bridge - South Korea AI Assistant</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- Leaflet Map CSS & JS (HD Maps) -->
+
+  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    #interactive-map { height: 400px; width: 100%; border-radius: 1rem; z-index: 10; }
-    .custom-popup .leaflet-popup-content-wrapper {
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid #334155;
-      border-radius: 0.75rem;
+
+  <!-- Google Fonts (Inter) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
     }
-    .custom-popup .leaflet-popup-tip { background: #0f172a; }
+  </script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    
+    /* Leaflet Dark Customization */
+    .leaflet-tile-pane {
+      filter: brightness(0.7) invert(1) contrast(1.2) hue-rotate(200deg) saturate(0.3);
+    }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+      background-color: #1e293b !important;
+      color: #f8fafc !important;
+      border: 1px solid #334155;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .leaflet-container {
+      font-family: 'Inter', sans-serif !important;
+    }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col md:flex-row">
+<body class="h-full flex flex-col md:flex-row overflow-hidden bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
 
-  <!-- Sidebar Navigation -->
-  <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 p-4 flex flex-col justify-between shrink-0">
-    <div>
-      <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/30">
+  <!-- Desktop Sidebar -->
+  <aside id="sidebar" class="hidden md:flex md:w-64 flex-col bg-slate-900/80 border-r border-slate-800 backdrop-blur-xl shrink-0 z-20">
+    <div class="p-5 border-b border-slate-800/80 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-bold text-lg">
           GKS
         </div>
         <div>
-          <h1 class="font-bold text-sm tracking-wide text-white">Campus Bridge</h1>
-          <p class="text-xs text-slate-400" id="sub-title">GKS AI Assistant</p>
+          <h1 class="font-bold text-slate-100 tracking-tight leading-none text-base">Campus Bridge</h1>
+          <span class="text-[10px] font-semibold tracking-wider text-indigo-400 uppercase">GKS Scholar AI</span>
         </div>
       </div>
-
-      <!-- Navigation Menu -->
-      <nav class="space-y-1" id="nav-menu">
-        <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium bg-blue-600/20 text-blue-400 border border-blue-500/30 transition">
-          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <span data-i18n="nav_dashboard">Dashboard</span>
-        </button>
-        <button onclick="switchTab('map')" id="btn-map" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
-          <i data-lucide="map" class="w-4 h-4"></i> <span data-i18n="nav_map">Interactive Map</span>
-        </button>
-        <button onclick="switchTab('food')" id="btn-food" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
-          <i data-lucide="utensils" class="w-4 h-4"></i> <span data-i18n="nav_food">Where to Eat</span>
-        </button>
-        <button onclick="switchTab('shopping')" id="btn-shopping" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
-          <i data-lucide="shopping-bag" class="w-4 h-4"></i> <span data-i18n="nav_shopping">Shopping & Essentials</span>
-        </button>
-        <button onclick="switchTab('ocr')" id="btn-ocr" class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition">
-          <i data-lucide="file-text" class="w-4 h-4"></i> <span data-i18n="nav_ocr">Document OCR</span>
-        </button>
-      </nav>
     </div>
 
-    <!-- Security Panel -->
-    <div class="p-3 bg-slate-950/80 border border-emerald-500/20 rounded-xl mt-6">
-      <div class="flex items-center gap-2 text-emerald-400 text-xs font-semibold mb-1">
-        <i data-lucide="shield-check" class="w-4 h-4"></i> <span data-i18n="sec_title">Zero-Storage Active</span>
-      </div>
-      <p class="text-[11px] text-slate-400" data-i18n="sec_desc">Client-side masking & in-memory processing enabled.</p>
+    <!-- Navigation Menu -->
+    <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+      <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-white bg-indigo-600 shadow-md shadow-indigo-600/20">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+        <span data-i18n="nav_dashboard">Dashboard & AI</span>
+      </button>
+
+      <button onclick="switchTab('map')" id="nav-map" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i data-lucide="map-pin" class="w-4 h-4"></i>
+        <span data-i18n="nav_map">Interactive Map</span>
+      </button>
+
+      <button onclick="switchTab('food')" id="nav-food" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i data-lucide="utensils" class="w-4 h-4"></i>
+        <span data-i18n="nav_food">Where to Eat</span>
+      </button>
+
+      <button onclick="switchTab('shopping')" id="nav-shopping" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+        <span data-i18n="nav_shopping">Shopping & Essentials</span>
+      </button>
+
+      <button onclick="switchTab('ocr')" id="nav-ocr" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+        <i data-lucide="scan-line" class="w-4 h-4"></i>
+        <span data-i18n="nav_ocr">OCR Translator</span>
+      </button>
+    </nav>
+
+    <!-- Language Selector Dropdown in Sidebar Footer -->
+    <div class="p-4 border-t border-slate-800/80 bg-slate-900/40">
+      <label for="lang-select-desktop" class="block text-xs font-medium text-slate-400 mb-2 flex items-center gap-1.5">
+        <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i>
+        <span data-i18n="select_language">Select Language</span>
+      </label>
+      <select id="lang-select-desktop" onchange="changeLanguage(this.value)" class="w-full bg-slate-950 border border-slate-700/80 text-slate-200 text-xs rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+        <option value="en">English (US)</option>
+        <option value="ko">한국어 (Korean)</option>
+        <option value="ru">Русский (Russian)</option>
+        <option value="fr">Français (French)</option>
+        <option value="es">Español (Spanish)</option>
+        <option value="ar">العربية (Arabic)</option>
+        <option value="ja">日本語 (Japanese)</option>
+        <option value="zh">中文 (Chinese)</option>
+        <option value="kk">Қазақша (Kazakh)</option>
+        <option value="pt">Português (Portuguese)</option>
+      </select>
     </div>
   </aside>
 
-  <!-- Main Container -->
-  <main class="flex-1 flex flex-col min-h-screen bg-slate-950 overflow-hidden">
-    
-    <!-- Top Bar -->
-    <header class="h-16 border-b border-slate-800 px-6 flex items-center justify-between bg-slate-900/50 backdrop-blur-md">
-      <div class="flex items-center gap-2 text-slate-400 text-sm">
-        <i data-lucide="globe" class="w-4 h-4 text-blue-400"></i>
-        <span data-i18n="lang_select">Language:</span>
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+    <!-- Top Bar for Mobile & Header Controls -->
+    <header class="h-16 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-20">
+      <!-- Mobile Brand Logo -->
+      <div class="flex items-center gap-3 md:hidden">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white font-bold text-sm">
+          GKS
+        </div>
+        <span class="font-bold text-slate-100 text-sm">Campus Bridge</span>
       </div>
 
-      <!-- 10 Languages Selector -->
-      <select id="langSelect" onchange="changeLanguage()" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500">
-        <option value="en">English (EN)</option>
-        <option value="kr">한국어 (KR)</option>
-        <option value="ru">Русский (RU)</option>
-        <option value="fr">Français (FR)</option>
-        <option value="es">Español (ES)</option>
-        <option value="ar">العربية (AR)</option>
-        <option value="ja">日本語 (JA)</option>
-        <option value="zh">中文 (ZH)</option>
-        <option value="kk">Қазақша (KK)</option>
-        <option value="pt">Português (PT)</option>
-      </select>
+      <!-- Top Title Bar Desktop -->
+      <div class="hidden md:flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span data-i18n="status_online">GKS AI Online</span>
+        </span>
+        <span class="text-xs text-slate-400" data-i18n="header_subtitle">• Seoul National University Area & National Guidance</span>
+      </div>
+
+      <!-- Right Actions: Language Switcher for Mobile & Quick Actions -->
+      <div class="flex items-center gap-2">
+        <div class="md:hidden">
+          <select id="lang-select-mobile" onchange="changeLanguage(this.value)" class="bg-slate-950 border border-slate-700/80 text-slate-200 text-xs rounded-lg p-2 focus:ring-2 focus:ring-indigo-500">
+            <option value="en">EN</option>
+            <option value="ko">KO</option>
+            <option value="ru">RU</option>
+            <option value="fr">FR</option>
+            <option value="es">ES</option>
+            <option value="ar">AR</option>
+            <option value="ja">JA</option>
+            <option value="zh">ZH</option>
+            <option value="kk">KK</option>
+            <option value="pt">PT</option>
+          </select>
+        </div>
+
+        <button onclick="switchTab('ocr')" class="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg transition-colors border border-slate-700/60">
+          <i data-lucide="camera" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span class="hidden sm:inline" data-i18n="btn_scan_notice">Scan Korean Notice</span>
+        </button>
+      </div>
     </header>
 
-    <!-- App Content -->
-    <div class="p-6 space-y-6 flex-1 overflow-y-auto">
+    <!-- Content Area (Scrollable containers per tab) -->
+    <main id="main-container" class="flex-1 overflow-hidden relative">
 
-      <!-- TAB 1: DASHBOARD -->
-      <div id="tab-dashboard" class="tab-content space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <!-- AI Chat Box -->
-          <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col h-[520px]">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div class="flex items-center gap-2">
-                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-                <h2 class="font-semibold text-slate-200 text-sm" data-i18n="chat_title">GKS AI Assistant (Live)</h2>
+      <!-- TAB 1: DASHBOARD (AI Chat + Visa Tracker) -->
+      <section id="tab-dashboard" class="tab-content h-full flex flex-col lg:flex-row p-4 gap-4 overflow-y-auto lg:overflow-hidden">
+        
+        <!-- Left Column: Dynamic AI Chat -->
+        <div class="flex-1 flex flex-col bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl h-[550px] lg:h-full">
+          <!-- Chat Header -->
+          <div class="p-3.5 border-b border-slate-800/80 bg-slate-900/80 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                <i data-lucide="bot" class="w-4 h-4"></i>
               </div>
-              <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">Gemini RAG Engine</span>
-            </div>
-
-            <div id="chatHistory" class="flex-1 overflow-y-auto py-4 space-y-3 text-xs pr-1">
-              <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl max-w-[85%] text-slate-300">
-                <p data-i18n="chat_welcome">Annyeonghaseyo! 👋 I am your AI advisor in Korea. Try asking:</p>
-                <ul class="list-disc list-inside mt-2 space-y-1 text-blue-400">
-                  <li class="cursor-pointer hover:underline" onclick="quickQuery('visa')">"How to extend D-2 visa?"</li>
-                  <li class="cursor-pointer hover:underline" onclick="quickQuery('daiso')">"Where is the nearest Daiso?"</li>
-                  <li class="cursor-pointer hover:underline" onclick="quickQuery('bank')">"How to open a Korean bank account?"</li>
-                </ul>
+              <div>
+                <h3 class="text-xs font-semibold text-slate-200" data-i18n="ai_assistant_title">GKS Scholar AI Mentor</h3>
+                <p class="text-[10px] text-slate-400" data-i18n="ai_assistant_subtitle">Ask about D-2 Visa, ARC, Banking, Health Insurance & University Life</p>
               </div>
             </div>
+            <button onclick="clearChat()" class="text-xs text-slate-400 hover:text-slate-200 p-1.5 hover:bg-slate-800 rounded-lg transition-colors" title="Clear Chat">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
 
-            <div class="flex gap-2 pt-3 border-t border-slate-800">
-              <input type="text" id="userInput" onkeydown="if(event.key==='Enter') sendMessage()" placeholder="..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
-              <button onclick="sendMessage()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-xs font-medium transition flex items-center gap-1 shrink-0">
-                <span data-i18n="send_btn">Send</span>
-                <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          <!-- Quick Query Preset Chips -->
+          <div class="px-3 py-2 border-b border-slate-800/50 bg-slate-950/40 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+            <span class="text-[10px] text-slate-400 font-medium whitespace-nowrap" data-i18n="chip_label">Quick Queries:</span>
+            <button onclick="sendQuickQuery('arc')" class="px-2.5 py-1 rounded-full text-xs bg-slate-800/80 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 whitespace-nowrap transition-all" data-i18n="chip_arc">How to get ARC?</button>
+            <button onclick="sendQuickQuery('visa')" class="px-2.5 py-1 rounded-full text-xs bg-slate-800/80 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 whitespace-nowrap transition-all" data-i18n="chip_visa">D-2 Visa Extension</button>
+            <button onclick="sendQuickQuery('bank')" class="px-2.5 py-1 rounded-full text-xs bg-slate-800/80 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 whitespace-nowrap transition-all" data-i18n="chip_bank">GKS Bank Account</button>
+            <button onclick="sendQuickQuery('work')" class="px-2.5 py-1 rounded-full text-xs bg-slate-800/80 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/20 whitespace-nowrap transition-all" data-i18n="chip_work">Part-time Work Rules</button>
+          </div>
+
+          <!-- Chat Stream Messages Container -->
+          <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3">
+            <!-- Welcome Message initialized by JS -->
+          </div>
+
+          <!-- Chat Input Controls -->
+          <div class="p-3 border-t border-slate-800 bg-slate-900/90">
+            <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex items-center gap-2">
+              <input id="chat-input" type="text" placeholder="Ask anything about studying in South Korea..." data-i18n-ph="chat_placeholder" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+              <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2.5 rounded-xl transition-all shadow-md shadow-indigo-600/20 shrink-0">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Right Column: Visa & ARC Tracker -->
+        <div class="w-full lg:w-80 flex flex-col gap-4 shrink-0">
+          <!-- Visa & Settlement Progress Card -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 backdrop-blur-md shadow-lg">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-bold text-slate-100 flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                <span data-i18n="tracker_title">GKS Settlement Checklist</span>
+              </h3>
+              <span id="tracker-percentage" class="text-xs font-bold text-indigo-400">40%</span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-4">
+              <div id="tracker-bar" class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full w-[40%] transition-all duration-500"></div>
+            </div>
+
+            <!-- Interactive Checklist Items -->
+            <div class="space-y-2.5 text-xs">
+              <label class="flex items-start gap-2.5 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-800/50">
+                <input type="checkbox" checked onchange="toggleChecklist(this)" class="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950">
+                <span class="text-slate-300 group-hover:text-white transition-colors" data-i18n="chk_entry">Entry to Korea & Dorm Check-in</span>
+              </label>
+              <label class="flex items-start gap-2.5 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-800/50">
+                <input type="checkbox" checked onchange="toggleChecklist(this)" class="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950">
+                <span class="text-slate-300 group-hover:text-white transition-colors" data-i18n="chk_bank">Open Hana/Kookmin Bank Account</span>
+              </label>
+              <label class="flex items-start gap-2.5 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-800/50">
+                <input type="checkbox" onchange="toggleChecklist(this)" class="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950">
+                <span class="text-slate-300 group-hover:text-white transition-colors" data-i18n="chk_arc">Alien Registration Card (ARC) Appointment</span>
+              </label>
+              <label class="flex items-start gap-2.5 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-800/50">
+                <input type="checkbox" onchange="toggleChecklist(this)" class="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950">
+                <span class="text-slate-300 group-hover:text-white transition-colors" data-i18n="chk_nhis">National Health Insurance Enrollment</span>
+              </label>
+              <label class="flex items-start gap-2.5 cursor-pointer group p-1.5 rounded-lg hover:bg-slate-800/50">
+                <input type="checkbox" onchange="toggleChecklist(this)" class="mt-0.5 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950">
+                <span class="text-slate-300 group-hover:text-white transition-colors" data-i18n="chk_sim">Korean USIM / Mobile Phone Number</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Quick Emergency Contacts Card -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 backdrop-blur-md shadow-lg flex-1">
+            <h3 class="text-xs font-bold text-slate-100 mb-3 flex items-center gap-2">
+              <i data-lucide="phone-call" class="w-4 h-4 text-rose-400"></i>
+              <span data-i18n="emergency_title">Important Helplines</span>
+            </h3>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+                <span class="text-slate-300" data-i18n="help_immigration">Immigration Contact Center</span>
+                <span class="font-mono text-indigo-400 font-bold">1345</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+                <span class="text-slate-300" data-i18n="help_emergency">Police / Fire & Medical</span>
+                <span class="font-mono text-rose-400 font-bold">112 / 119</span>
+              </div>
+              <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950/60 border border-slate-800">
+                <span class="text-slate-300" data-i18n="help_niied">NIIED GKS Desk</span>
+                <span class="font-mono text-indigo-400 font-bold">02-3668-1380</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: INTERACTIVE MAP -->
+      <section id="tab-map" class="tab-content hidden h-full flex-col p-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+          <div>
+            <h2 class="text-sm font-bold text-slate-100" data-i18n="map_title">Campus & City Guide Map</h2>
+            <p class="text-xs text-slate-400" data-i18n="map_subtitle">Key spots for international students around Seoul Campus</p>
+          </div>
+
+          <!-- Map Filters -->
+          <div class="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 md:pb-0">
+            <button onclick="filterMap('all')" id="filter-all" class="map-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-all">
+              <span data-i18n="map_filter_all">All Places</span>
+            </button>
+            <button onclick="filterMap('food')" id="filter-food" class="map-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+              <span data-i18n="map_filter_food">Food & Cafes</span>
+            </button>
+            <button onclick="filterMap('shopping')" id="filter-shopping" class="map-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+              <span data-i18n="map_filter_shopping">Shopping</span>
+            </button>
+            <button onclick="filterMap('services')" id="filter-services" class="map-filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">
+              <span data-i18n="map_filter_services">Immigration & Banking</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Leaflet Container -->
+        <div id="map-container" class="flex-1 w-full rounded-2xl border border-slate-800 overflow-hidden shadow-2xl relative"></div>
+      </section>
+
+      <!-- TAB 3: WHERE TO EAT -->
+      <section id="tab-food" class="tab-content hidden h-full p-4 overflow-y-auto">
+        <div class="mb-4">
+          <h2 class="text-base font-bold text-slate-100" data-i18n="food_title">Student Dining & Halal Guide</h2>
+          <p class="text-xs text-slate-400" data-i18n="food_subtitle">Budget-friendly campus cafeterias, certified halal food, and late-night options</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Card 1 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="food_1_title">Student Cafeteria (Building 63)</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" data-i18n="badge_budget font-mono">3,500~5,500 KRW</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="food_1_desc">Affordable daily Korean lunch sets, ramen station, and soft-serve ice cream. Fast self-ordering kiosks.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i> 08:00 - 19:00
+              </span>
+              <button onclick="showOnMap(37.4598, 126.9519, 'Student Cafeteria (Building 63)')" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-medium transition-all flex items-center gap-1.5 border border-indigo-500/30">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_show_map">Show on Map</span>
               </button>
             </div>
           </div>
 
-          <!-- Visa Tracker Panel -->
-          <div class="space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3" data-i18n="visa_title">ARC Visa Tracker</h3>
-              <div class="space-y-3">
-                <div class="flex justify-between text-xs text-slate-300">
-                  <span data-i18n="visa_status">Document Verification</span>
-                  <span class="text-emerald-400 font-medium">75%</span>
+          <!-- Card 2 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="food_2_title">Seoul Halal Kebab & Curry</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20" data-i18n="badge_halal">Certified Halal</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="food_2_desc">Authentic halal chicken bowls, wraps, and rice plates right outside campus station exit 3.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i> 11:00 - 22:00
+              </span>
+              <button onclick="showOnMap(37.4801, 126.9525, 'Seoul Halal Kebab & Curry')" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-medium transition-all flex items-center gap-1.5 border border-indigo-500/30">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_show_map">Show on Map</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="food_3_title">24/7 GS25 Convenience Hub</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20" data-i18n="badge_247">24 Hours</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="food_3_desc">Instant ramen bar, T-Money card recharge station, microwave meal boxes, and foreign snack selection.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="clock" class="w-3.5 h-3.5"></i> Open 24/7
+              </span>
+              <button onclick="showOnMap(37.4682, 126.9538, '24/7 GS25 Convenience Store')" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-medium transition-all flex items-center gap-1.5 border border-indigo-500/30">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_show_map">Show on Map</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: SHOPPING & ESSENTIALS -->
+      <section id="tab-shopping" class="tab-content hidden h-full p-4 overflow-y-auto">
+        <div class="mb-4">
+          <h2 class="text-base font-bold text-slate-100" data-i18n="shop_title">Shopping & Student Essentials</h2>
+          <p class="text-xs text-slate-400" data-i18n="shop_subtitle">Where to purchase cheap houseware, groceries, and second-hand furniture</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Shop Card 1 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="shop_1_title">Daiso (Sillim Branch)</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">1,000 - 5,000 KRW</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="shop_1_desc">Essential destination for dormitory setup: adapters, storage bins, bedding, dishware, and cleaning supplies.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="shopping-bag" class="w-3.5 h-3.5"></i> Household Supplies
+              </span>
+              <button onclick="showOnMap(37.4842, 126.9298, 'Daiso Sillim Branch')" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-medium transition-all flex items-center gap-1.5 border border-indigo-500/30">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_show_map">Show on Map</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Shop Card 2 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="shop_2_title">E-Mart Hypermarket</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20" data-i18n="badge_groceries">Groceries & Tech</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="shop_2_desc">Large supermarket chain for fresh produce, rice cookers, desk lamps, international food aisle, and electronics.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="store" class="w-3.5 h-3.5"></i> Supermarket
+              </span>
+              <button onclick="showOnMap(37.4820, 126.9015, 'E-Mart Guro Store')" class="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-medium transition-all flex items-center gap-1.5 border border-indigo-500/30">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_show_map">Show on Map</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Shop Card 3 -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all shadow-md">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="text-sm font-bold text-slate-100" data-i18n="shop_3_title">Karrot Market (당근마켓 App)</h3>
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" data-i18n="badge_secondhand">Secondhand App</span>
+              </div>
+              <p class="text-xs text-slate-400 mb-3" data-i18n="shop_3_desc">South Korea's #1 local secondhand marketplace for buying cheap textbooks, bikes, desks, and clothing nearby.</p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800/60">
+              <span class="text-[11px] text-slate-500 flex items-center gap-1">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5"></i> Mobile App
+              </span>
+              <a href="https://www.daangn.com" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-all flex items-center gap-1.5 border border-slate-700">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_open_app">Open Guide</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: DOCUMENT OCR SCANNER & TRANSLATOR -->
+      <section id="tab-ocr" class="tab-content hidden h-full p-4 overflow-y-auto">
+        <div class="mb-4">
+          <h2 class="text-base font-bold text-slate-100" data-i18n="ocr_title">Korean Official Document Scanner & OCR</h2>
+          <p class="text-xs text-slate-400" data-i18n="ocr_subtitle">Scan or drop university notices, immigration forms, or utility bills for instant translation</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Drop Area & Preset Buttons -->
+          <div class="space-y-4">
+            <div id="drop-zone" onclick="triggerPresetOCR('notice')" class="border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-8 bg-slate-900/40 hover:bg-indigo-950/20 transition-all flex flex-col items-center justify-center cursor-pointer text-center group">
+              <div class="w-14 h-14 rounded-full bg-slate-800 group-hover:bg-indigo-600/20 border border-slate-700 group-hover:border-indigo-500/40 flex items-center justify-center text-slate-400 group-hover:text-indigo-400 transition-all mb-3">
+                <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+              </div>
+              <p class="text-xs font-semibold text-slate-200 mb-1" data-i18n="ocr_drop_text">Click or drag official Korean document here</p>
+              <p class="text-[11px] text-slate-500" data-i18n="ocr_drop_sub">Supports PNG, JPG, PDF (Dorm announcements, Visa forms)</p>
+            </div>
+
+            <div>
+              <p class="text-xs text-slate-400 mb-2 font-medium" data-i18n="ocr_preset_label">Or test with simulated sample documents:</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button onclick="triggerPresetOCR('notice')" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-left transition-all">
+                  <div class="text-xs font-bold text-slate-200" data-i18n="sample_1_title">University Dorm Notice</div>
+                  <div class="text-[10px] text-slate-500" data-i18n="sample_1_sub">Curfew & Inspection details</div>
+                </button>
+                <button onclick="triggerPresetOCR('visa')" class="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 text-left transition-all">
+                  <div class="text-xs font-bold text-slate-200" data-i18n="sample_2_title">Immigration Form 34</div>
+                  <div class="text-[10px] text-slate-500" data-i18n="sample_2_sub">Alien Registration application</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Extraction Output Display -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between backdrop-blur-md">
+            <div id="ocr-loading" class="hidden flex-1 flex-col items-center justify-center py-12 text-center">
+              <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p class="text-xs text-indigo-400 font-medium" data-i18n="ocr_scanning">Extracting Korean Hangul text & translating...</p>
+            </div>
+
+            <div id="ocr-results">
+              <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                  <i data-lucide="file-text" class="w-4 h-4 text-indigo-400"></i>
+                  <span data-i18n="ocr_results_title">Extracted Document Breakdown</span>
+                </span>
+                <span id="ocr-confidence" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">OCR Confidence: 99.2%</span>
+              </div>
+
+              <!-- Raw Korean Section -->
+              <div class="mb-4">
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1" data-i18n="ocr_raw_label">Original Text (한국어):</label>
+                <div id="ocr-raw" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 font-mono leading-relaxed">
+                  [2026-2학기 기숙사 소방점검 안내]<br>
+                  일시: 10월 15일 14:00 - 17:00<br>
+                  대상: 국제관 전 객실. 관리인이 직접 방문 점검할 예정이오니 협조 바랍니다.
                 </div>
-                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                  <div class="bg-blue-500 h-full w-[75%] rounded-full"></div>
+              </div>
+
+              <!-- Translated Output Section -->
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-400 mb-1" data-i18n="ocr_trans_label">Translated Meaning (Active Language):</label>
+                <div id="ocr-translated" class="bg-indigo-950/20 p-3 rounded-xl border border-indigo-500/30 text-xs text-indigo-100 leading-relaxed font-sans">
+                  <strong>[2026-2nd Semester Dormitory Fire Safety Inspection Notice]</strong><br>
+                  • <strong>Date/Time:</strong> October 15, 14:00 - 17:00<br>
+                  • <strong>Target:</strong> All rooms in the International House.<br>
+                  • <strong>Details:</strong> Dormitory inspectors will enter rooms directly for safety equipment checks. Your cooperation is required.
                 </div>
-                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
-                  📌 <strong data-i18n="next_step">Next Step:</strong> <span data-i18n="visa_desc">Visit Immigration Office (Sept 25).</span>
-                </div>
               </div>
             </div>
-          </div>
 
-        </div>
-      </div>
-
-      <!-- TAB 2: INTERACTIVE MAP -->
-      <div id="tab-map" class="tab-content hidden space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <h2 class="text-lg font-bold text-white" data-i18n="map_heading">Campus & Seoul Map Navigation</h2>
-            <p class="text-xs text-slate-400" data-i18n="map_sub">Explore nearby cafeterias, stores, and visa centers in HD detail.</p>
-          </div>
-          <!-- Filter Buttons -->
-          <div class="flex gap-2">
-            <button onclick="filterMap('all')" class="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition" data-i18n="filter_all">All</button>
-            <button onclick="filterMap('food')" class="text-xs px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition" data-i18n="filter_food">Food</button>
-            <button onclick="filterMap('shopping')" class="text-xs px-3 py-1.5 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 transition" data-i18n="filter_shopping">Shopping</button>
-          </div>
-        </div>
-
-        <div id="interactive-map"></div>
-      </div>
-
-      <!-- TAB 3: WHERE TO EAT -->
-      <div id="tab-food" class="tab-content hidden space-y-6">
-        <div>
-          <h2 class="text-lg font-bold text-white" data-i18n="food_heading">Dining & Cafeteria Guide</h2>
-          <p class="text-xs text-slate-400" data-i18n="food_sub">Halal options, cheap campus cafeterias, and 24/7 stores.</p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <!-- Item 1 -->
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="font-semibold text-sm text-slate-200" data-i18n="cafeteria_title">Student Cafeteria Building 101</h3>
-                <span class="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded">₩4,500</span>
-              </div>
-              <p class="text-xs text-slate-400" data-i18n="cafeteria_desc">Daily changing Korean sets (Bibimbap, Stews). Student discounts apply.</p>
+            <div class="pt-3 mt-4 border-t border-slate-800 flex justify-end">
+              <button onclick="copyOCRText()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg transition-colors flex items-center gap-1.5">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span data-i18n="btn_copy_text">Copy Translation</span>
+              </button>
             </div>
-            <button onclick="focusOnMap(37.5580, 126.9350, 'Student Cafeteria')" class="w-full text-xs bg-slate-800 hover:bg-blue-600 text-slate-200 py-2 rounded-lg transition flex items-center justify-center gap-1">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> <span data-i18n="show_map">Show on Map</span>
-            </button>
-          </div>
-
-          <!-- Item 2 -->
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="font-semibold text-sm text-slate-200" data-i18n="halal_title">Makan Halal Restaurant</h3>
-                <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">₩10,000</span>
-              </div>
-              <p class="text-xs text-slate-400" data-i18n="halal_desc">Certified Halal Korean BBQ, Dakgalbi, and authentic local cuisine.</p>
-            </div>
-            <button onclick="focusOnMap(37.5570, 126.9340, 'Makan Halal Restaurant')" class="w-full text-xs bg-slate-800 hover:bg-blue-600 text-slate-200 py-2 rounded-lg transition flex items-center justify-center gap-1">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> <span data-i18n="show_map">Show on Map</span>
-            </button>
-          </div>
-
-          <!-- Item 3 -->
-          <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-start mb-2">
-                <h3 class="font-semibold text-sm text-slate-200" data-i18n="cu_title">CU & GS25 Convenience 24/7</h3>
-                <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">₩2,000</span>
-              </div>
-              <p class="text-xs text-slate-400" data-i18n="cu_desc">Instant ramen, kimbap, coffee, and T-Money transportation card top-up.</p>
-            </div>
-            <button onclick="focusOnMap(37.5560, 126.9375, 'GS25 Convenience Store')" class="w-full text-xs bg-slate-800 hover:bg-blue-600 text-slate-200 py-2 rounded-lg transition flex items-center justify-center gap-1">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> <span data-i18n="show_map">Show on Map</span>
-            </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- TAB 4: SHOPPING -->
-      <div id="tab-shopping" class="tab-content hidden space-y-6">
-        <div>
-          <h2 class="text-lg font-bold text-white" data-i18n="shop_heading">Shopping & Living Essentials</h2>
-          <p class="text-xs text-slate-400" data-i18n="shop_sub">Get dorm supplies, furniture, and groceries within budget.</p>
-        </div>
+    </main>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Store 1 -->
-          <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <h3 class="font-semibold text-slate-200 text-sm mb-1 flex items-center gap-2">
-                <i data-lucide="store" class="w-4 h-4 text-blue-400"></i> <span data-i18n="daiso_title">Daiso Sinchon Branch</span>
-              </h3>
-              <p class="text-xs text-slate-400" data-i18n="daiso_desc">5 floors of cheap household items: adapters, pillows, organizers for ₩1,000–₩5,000.</p>
-            </div>
-            <button onclick="focusOnMap(37.5555, 126.9365, 'Daiso Sinchon Main Branch')" class="w-full text-xs bg-slate-800 hover:bg-blue-600 text-slate-200 py-2 rounded-lg transition flex items-center justify-center gap-1">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> <span data-i18n="show_map">Show on Map</span>
-            </button>
-          </div>
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="md:hidden h-16 bg-slate-900 border-t border-slate-800 px-2 flex items-center justify-around shrink-0 z-20">
+      <button onclick="switchTab('dashboard')" id="mobile-nav-dashboard" class="mobile-nav-btn flex flex-col items-center justify-center w-full py-1 text-indigo-400">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1" data-i18n="nav_dashboard">Dashboard</span>
+      </button>
 
-          <!-- Store 2 -->
-          <div class="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3 flex flex-col justify-between">
-            <div>
-              <h3 class="font-semibold text-slate-200 text-sm mb-1 flex items-center gap-2">
-                <i data-lucide="shopping-cart" class="w-4 h-4 text-emerald-400"></i> <span data-i18n="emart_title">E-Mart Supermarket</span>
-              </h3>
-              <p class="text-xs text-slate-400" data-i18n="emart_desc">Large grocery store for fresh food, electronics, and bulk dorm supplies.</p>
-            </div>
-            <button onclick="focusOnMap(37.5510, 126.9320, 'E-Mart Grand Store')" class="w-full text-xs bg-slate-800 hover:bg-blue-600 text-slate-200 py-2 rounded-lg transition flex items-center justify-center gap-1">
-              <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> <span data-i18n="show_map">Show on Map</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <button onclick="switchTab('map')" id="mobile-nav-map" class="mobile-nav-btn flex flex-col items-center justify-center w-full py-1 text-slate-400">
+        <i data-lucide="map-pin" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1" data-i18n="nav_map">Map</span>
+      </button>
 
-      <!-- TAB 5: DOCUMENT OCR -->
-      <div id="tab-ocr" class="tab-content hidden space-y-6">
-        <div>
-          <h2 class="text-lg font-bold text-white" data-i18n="ocr_heading">Document OCR Scanner & Translator</h2>
-          <p class="text-xs text-slate-400" data-i18n="ocr_sub">Upload university notices or bills to translate Korean text safely.</p>
-        </div>
+      <button onclick="switchTab('food')" id="mobile-nav-food" class="mobile-nav-btn flex flex-col items-center justify-center w-full py-1 text-slate-400">
+        <i data-lucide="utensils" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1" data-i18n="nav_food">Food</span>
+      </button>
 
-        <div class="border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-2xl p-8 text-center bg-slate-900 transition cursor-pointer" onclick="runOCR()">
-          <i data-lucide="upload-cloud" class="w-10 h-10 text-blue-400 mx-auto mb-3 animate-bounce"></i>
-          <p class="text-xs font-medium text-slate-200" data-i18n="ocr_upload">Click here to scan sample document</p>
-          <p class="text-[10px] text-slate-500 mt-1" data-i18n="ocr_privacy">Processed in memory. Zero retention policy.</p>
-        </div>
+      <button onclick="switchTab('shopping')" id="mobile-nav-shopping" class="mobile-nav-btn flex flex-col items-center justify-center w-full py-1 text-slate-400">
+        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1" data-i18n="nav_shopping">Shopping</span>
+      </button>
 
-        <div id="ocrResult" class="hidden bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3">
-          <div class="flex items-center justify-between text-xs text-emerald-400 font-semibold border-b border-slate-800 pb-2">
-            <span data-i18n="ocr_complete">Scan Complete (Korean ➔ Target Language)</span>
-            <span>PII Masked ✓</span>
-          </div>
-          <div class="text-xs text-slate-300 space-y-2">
-            <p><strong>Raw OCR:</strong> [외국인등록증 연장 신청 안내] D-2 비자 제출 서류 안내...</p>
-            <p><strong>Translation:</strong> <span data-i18n="ocr_sample_trans">[ARC Extension Notice] All D-2 students must submit proof of enrollment and bank balance before Sept 30.</span></p>
-          </div>
-        </div>
-      </div>
+      <button onclick="switchTab('ocr')" id="mobile-nav-ocr" class="mobile-nav-btn flex flex-col items-center justify-center w-full py-1 text-slate-400">
+        <i data-lucide="scan-line" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1" data-i18n="nav_ocr">OCR</span>
+      </button>
+    </nav>
+  </div>
 
-    </div>
-  </main>
-
-  <!-- JS Logic & Multi-language Translations -->
   <script>
-    lucide.createIcons();
-
-    // Translations Dictionary for 10 Languages
-    const i18n = {
+    /* ==========================================================================
+       1. GLOBAL DICTIONARY & MULTI-LANGUAGE SYSTEM (10 LANGUAGES)
+       ========================================================================== */
+    const translations = {
       en: {
-        nav_dashboard: "Dashboard", nav_map: "Interactive Map", nav_food: "Where to Eat", nav_shopping: "Shopping & Essentials", nav_ocr: "Document OCR",
-        sec_title: "Zero-Storage Active", sec_desc: "Client-side regex masking active.", lang_select: "Language:",
-        chat_title: "GKS AI Assistant (Live)", chat_welcome: "Annyeonghaseyo! 👋 Ask me anything about studying in Korea:",
-        send_btn: "Send", visa_title: "ARC Visa Tracker", visa_status: "Document Verification", next_step: "Next Step:",
-        visa_desc: "Visit Immigration Office (Sept 25).", map_heading: "Campus & Seoul Map Navigation", map_sub: "Explore nearby cafeterias, stores, and visa centers in HD detail.",
-        filter_all: "All", filter_food: "Food", filter_shopping: "Shopping", food_heading: "Dining & Cafeteria Guide",
-        food_sub: "Halal options, cheap campus cafeterias, and 24/7 stores.", cafeteria_title: "Student Cafeteria 101",
-        cafeteria_desc: "Daily changing Korean sets (Bibimbap, Stews). Student discounts.", halal_title: "Makan Halal Restaurant",
-        halal_desc: "Certified Halal Korean BBQ, Dakgalbi, and authentic local cuisine.", cu_title: "CU & GS25 Convenience 24/7",
-        cu_desc: "Instant ramen, kimbap, coffee, and T-Money card top-up.", show_map: "Show on Map",
-        shop_heading: "Shopping & Living Essentials", shop_sub: "Get dorm supplies, furniture, and groceries within budget.",
-        daiso_title: "Daiso Sinchon Branch", daiso_desc: "5 floors of cheap household items for ₩1,000–₩5,000.",
-        emart_title: "E-Mart Supermarket", emart_desc: "Large grocery store for fresh food and bulk dorm supplies.",
-        ocr_heading: "Document OCR Scanner & Translator", ocr_sub: "Upload notices to translate Korean text safely.",
-        ocr_upload: "Click here to scan sample document", ocr_privacy: "Processed in memory. Zero retention policy.",
-        ocr_complete: "Scan Complete (Korean ➔ Target Language)",
-        ocr_sample_trans: "[ARC Extension Notice] All D-2 students must submit proof of enrollment before Sept 30."
+        nav_dashboard: "Dashboard & AI",
+        nav_map: "Interactive Map",
+        nav_food: "Where to Eat",
+        nav_shopping: "Shopping & Essentials",
+        nav_ocr: "OCR Translator",
+        select_language: "Select Language",
+        status_online: "GKS AI Online",
+        header_subtitle: "• Seoul National University Area & National Guidance",
+        btn_scan_notice: "Scan Korean Notice",
+        ai_assistant_title: "GKS Scholar AI Mentor",
+        ai_assistant_subtitle: "Ask about D-2 Visa, ARC, Banking, Health Insurance & University Life",
+        chip_label: "Quick Queries:",
+        chip_arc: "How to get ARC?",
+        chip_visa: "D-2 Visa Extension",
+        chip_bank: "GKS Bank Account",
+        chip_work: "Part-time Work Rules",
+        chat_placeholder: "Ask anything about studying in South Korea...",
+        tracker_title: "GKS Settlement Checklist",
+        chk_entry: "Entry to Korea & Dorm Check-in",
+        chk_bank: "Open Hana/Kookmin Bank Account",
+        chk_arc: "Alien Registration Card (ARC) Appointment",
+        chk_nhis: "National Health Insurance Enrollment",
+        chk_sim: "Korean USIM / Mobile Phone Number",
+        emergency_title: "Important Helplines",
+        help_immigration: "Immigration Contact Center",
+        help_emergency: "Police / Fire & Medical",
+        help_niied: "NIIED GKS Desk",
+        map_title: "Campus & City Guide Map",
+        map_subtitle: "Key spots for international students around Seoul Campus",
+        map_filter_all: "All Places",
+        map_filter_food: "Food & Cafes",
+        map_filter_shopping: "Shopping",
+        map_filter_services: "Immigration & Banking",
+        food_title: "Student Dining & Halal Guide",
+        food_subtitle: "Budget-friendly campus cafeterias, certified halal food, and late-night options",
+        food_1_title: "Student Cafeteria (Building 63)",
+        food_1_desc: "Affordable daily Korean lunch sets, ramen station, and soft-serve ice cream. Fast self-ordering kiosks.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Authentic halal chicken bowls, wraps, and rice plates right outside campus station exit 3.",
+        food_3_title: "24/7 GS25 Convenience Hub",
+        food_3_desc: "Instant ramen bar, T-Money card recharge station, microwave meal boxes, and foreign snack selection.",
+        badge_budget: "3,500~5,500 KRW",
+        badge_halal: "Certified Halal",
+        badge_247: "24 Hours",
+        btn_show_map: "Show on Map",
+        shop_title: "Shopping & Student Essentials",
+        shop_subtitle: "Where to purchase cheap houseware, groceries, and second-hand furniture",
+        shop_1_title: "Daiso (Sillim Branch)",
+        shop_1_desc: "Essential destination for dormitory setup: adapters, storage bins, bedding, dishware, and cleaning supplies.",
+        shop_2_title: "E-Mart Hypermarket",
+        shop_2_desc: "Large supermarket chain for fresh produce, rice cookers, desk lamps, international food aisle, and electronics.",
+        shop_3_title: "Karrot Market (당근마켓 App)",
+        shop_3_desc: "South Korea's #1 local secondhand marketplace for buying cheap textbooks, bikes, desks, and clothing nearby.",
+        badge_groceries: "Groceries & Tech",
+        badge_secondhand: "Secondhand App",
+        btn_open_app: "Open Guide",
+        ocr_title: "Korean Official Document Scanner & OCR",
+        ocr_subtitle: "Scan or drop university notices, immigration forms, or utility bills for instant translation",
+        ocr_drop_text: "Click or drag official Korean document here",
+        ocr_drop_sub: "Supports PNG, JPG, PDF (Dorm announcements, Visa forms)",
+        ocr_preset_label: "Or test with simulated sample documents:",
+        sample_1_title: "University Dorm Notice",
+        sample_1_sub: "Curfew & Inspection details",
+        sample_2_title: "Immigration Form 34",
+        sample_2_sub: "Alien Registration application",
+        ocr_scanning: "Extracting Korean Hangul text & translating...",
+        ocr_results_title: "Extracted Document Breakdown",
+        ocr_raw_label: "Original Text (한국어):",
+        ocr_trans_label: "Translated Meaning (Active Language):",
+        btn_copy_text: "Copy Translation"
       },
-      kr: {
-        nav_dashboard: "대시보드", nav_map: "대화형 지도", nav_food: "식당 가이드", nav_shopping: "쇼핑 및 생필품", nav_ocr: "문서 OCR 번역",
-        sec_title: "보안 모드 활성화", sec_desc: "개인정보 클라이언트 마스킹 처리중.", lang_select: "언어 선택:",
-        chat_title: "GKS AI 어시스턴트", chat_welcome: "안녕하세요! 👋 유학 생활에 대해 무엇이든 물어보세요:",
-        send_btn: "전송", visa_title: "비자 신청 상태", visa_status: "서류 검토 과정", next_step: "다음 단계:",
-        visa_desc: "출입국관리사무소 방문 (9월 25일 예정).", map_heading: "캠퍼스 및 서울 지도 탐색", map_sub: "주변 식당, 매장, 출입국 사무소를 HD 지도로 확인하세요.",
-        filter_all: "전체", filter_food: "식당", filter_shopping: "쇼핑", food_heading: "캠퍼스 및 주변 식당",
-        food_sub: "할랄 음식점, 학생 식당, 24시간 편의점 안내.", cafeteria_title: "학생식당 101호관",
-        cafeteria_desc: "매일 바뀌는 한식 메뉴 (비빔밥, 찌개류). 학생 할인 적용.", halal_title: "마칸 할랄 레스토랑",
-        halal_desc: "할랄 인증 한식 닭갈비, 불고기 전문점.", cu_title: "CU / GS25 편의점 (24시간)",
-        cu_desc: "라면, 삼각김밥, 커피 및 교통카드 충전.", show_map: "지도에서 보기",
-        shop_heading: "쇼핑 및 생활용품", shop_sub: "기숙사 생필품 및 가구를 예산에 맞춰 구매하세요.",
-        daiso_title: "다이소 신촌본점", daiso_desc: "1,000원~5,000원대의 저렴한 5층 규모 생활용품점.",
-        emart_title: "이마트 신촌점", emart_desc: "신선 식품 및 대용량 생필품 구매가 가능한 대형마트.",
-        ocr_heading: "문서 OCR 스캐너 및 번역기", ocr_sub: "한국어 공지사항이나 고지서를 안전하게 번역하세요.",
-        ocr_upload: "샘플 문서를 스캔하려면 클릭하세요", ocr_privacy: "메모리 내 즉시 처리 (서버 저장 없음).",
-        ocr_complete: "스캔 완료 (한국어 ➔ 선택 언어)",
-        ocr_sample_trans: "[외국인등록증 연장 안내] 모든 D-2 학생은 9월 30일까지 재학증명서를 제출해야 합니다."
+      ko: {
+        nav_dashboard: "대시보드 및 AI",
+        nav_map: "인터랙티브 지도",
+        nav_food: "식당 및 맛집",
+        nav_shopping: "쇼핑 및 생활용품",
+        nav_ocr: "문서 OCR 번역기",
+        select_language: "언어 선택",
+        status_online: "GKS AI 온라인",
+        header_subtitle: "• 서울대학교 인근 및 전국 유학생 안내",
+        btn_scan_notice: "한국어 공지사항 스캔",
+        ai_assistant_title: "GKS 장학생 AI 멘토",
+        ai_assistant_subtitle: "D-2 비자, 외국인등록증, 은행 계좌, 건강보험 및 대학 생활 문의",
+        chip_label: "빠른 질문:",
+        chip_arc: "외국인등록증(ARC) 발급 방법",
+        chip_visa: "D-2 비자 연장 절차",
+        chip_bank: "GKS 장학금 은행 계좌",
+        chip_work: "시간제 취업(알바) 규정",
+        chat_placeholder: "한국 유학 생활에 대해 무엇이든 물어보세요...",
+        tracker_title: "GKS 정착 체크리스트",
+        chk_entry: "한국 입국 및 기숙사 입실",
+        chk_bank: "하나/국민은행 계좌 개설",
+        chk_arc: "외국인등록증(ARC) 방문 예약",
+        chk_nhis: "국민건강보험 가입 확인",
+        chk_sim: "한국 알뜰폰/유심 개통",
+        emergency_title: "주요 긴급 연락처",
+        help_immigration: "출입국 종합안내센터",
+        help_emergency: "경찰 / 소방 및 응급",
+        help_niied: "국립국제교육원 GKS 데스크",
+        map_title: "캠퍼스 및 생활 지도",
+        map_subtitle: "서울 캠퍼스 주변 주요 시설 안내",
+        map_filter_all: "전체 장소",
+        map_filter_food: "식당 및 카페",
+        map_filter_shopping: "쇼핑 및 대형마트",
+        map_filter_services: "출입국 및 은행",
+        food_title: "학생 식당 및 할랄 가이드",
+        food_subtitle: "가성비 학생식당, 인증 할랄 푸드, 24시 편의점",
+        food_1_title: "학생식당 (63동)",
+        food_1_desc: "저렴한 일일 한식 백반, 라면 코너 및 아이스크림. 키오스크 간편 주문.",
+        food_2_title: "서울 할랄 케밥 & 카레",
+        food_2_desc: "캠퍼스역 3번 출구 앞 위치한 인증 할랄 치킨 볼, 랩 및 카레 전문점.",
+        food_3_title: "24시 GS25 편의점",
+        food_3_desc: "즉석 라면 조리기, T-Money 교통카드 충전, 도시락 및 수입 과자.",
+        badge_budget: "3,500~5,500원",
+        badge_halal: "할랄 인증",
+        badge_247: "24시간 영업",
+        btn_show_map: "지도에서 보기",
+        shop_title: "쇼핑 및 생활 필수품",
+        shop_subtitle: "저렴한 자취용품, 식료품 및 중고 거래 안내",
+        shop_1_title: "다이소 (신림점)",
+        shop_1_desc: "기숙사 필수템: 돼지코 어댑터, 수납함, 침구류, 식기 및 청소용품.",
+        shop_2_title: "이마트 구로점",
+        shop_2_desc: "신선 식품, 전기밥솥, 스탠드, 세계 식품 코너 및 전자제품 대형마트.",
+        shop_3_title: "당근마켓 앱",
+        shop_3_desc: "대한민국 1위 지역 중고 거래 앱. 전공 서적, 자전거, 책상 직거래.",
+        badge_groceries: "식료품 및 가전",
+        badge_secondhand: "중고 거래 앱",
+        btn_open_app: "가이드 열기",
+        ocr_title: "한국어 공식 문서 스캐너 & OCR",
+        ocr_subtitle: "대학 공지사항, 출입국 서류, 공과금 청구서 즉시 번역",
+        ocr_drop_text: "공식 한국어 문서를 클릭하거나 드래그하세요",
+        ocr_drop_sub: "PNG, JPG, PDF 지원 (기숙사 공지, 비자 양식)",
+        ocr_preset_label: "또는 샘플 문서로 테스트해 보세요:",
+        sample_1_title: "대학교 기숙사 공지",
+        sample_1_sub: "통금 및 소방 점검 안내",
+        sample_2_title: "출입국 통합신청서 34호",
+        sample_2_sub: "외국인등록 신청 양식",
+        ocr_scanning: "한글 텍스트 추출 및 번역 중...",
+        ocr_results_title: "문서 추출 결과 분석",
+        ocr_raw_label: "원문 텍스트 (한국어):",
+        ocr_trans_label: "번역 결과 (현재 선택 언어):",
+        btn_copy_text: "번역문 복사"
       },
       ru: {
-        nav_dashboard: "Панель", nav_map: "Интерактивная карта", nav_food: "Где поесть", nav_shopping: "Покупки и товары", nav_ocr: "Сканер документов",
-        sec_title: "Защита данных активна", sec_desc: "Локальная анонимизация и Zero-Storage.", lang_select: "Язык:",
-        chat_title: "GKS AI Ассистент", chat_welcome: "Здравствуйте! 👋 Задайте любой вопрос об учебе в Корее:",
-        send_btn: "Отправить", visa_title: "Статус визы ARC", visa_status: "Проверка документов", next_step: "Следующий шаг:",
-        visa_desc: "Визит в миграционный центр (25 сент).", map_heading: "Карта кампуса и Сеула", map_sub: "Исследуйте столовые, магазины и центры в HD качестве.",
-        filter_all: "Все", filter_food: "Еда", filter_shopping: "Шопинг", food_heading: "Гайд по питанию",
-        food_sub: "Халяль места, недорогие столовые и круглосуточные магазины.", cafeteria_title: "Студенческая столовая №101",
-        cafeteria_desc: "Ежедневные корейские сеты (бибимбап, супы). Скидки студентам.", halal_title: "Makan Halal Ресторан",
-        halal_desc: "Сертифицированные халяль корейские блюда и BBQ.", cu_title: "Магазины CU / GS25 (24/7)",
-        cu_desc: "Рамен, кимбап, кофе и пополнение карты T-Money.", show_map: "Показать на карте",
-        shop_heading: "Покупки и вещи", shop_sub: "Обустройство комнаты и продукты по карману.",
-        daiso_title: "Daiso (Филиал Синчон)", daiso_desc: "5 этажей недорогих бытовых товаров от ₩1,000 до ₩5,000.",
-        emart_title: "Гипермаркет E-Mart", emart_desc: "Крупный супермаркет для покупки продуктов и бытовой техники.",
-        ocr_heading: "OCR Сканер документов", ocr_sub: "Безопасный перевод корейских писем и уведомлений.",
-        ocr_upload: "Нажмите для сканирования образца", ocr_privacy: "Обработка в оперативной памяти без сохранения.",
-        ocr_complete: "Сканирование завершено",
-        ocr_sample_trans: "[Продление ARC] Все студенты с визой D-2 должны подать справку об учебе до 30 сентября."
-      },
-      kk: {
-        nav_dashboard: "Басқару панелі", nav_map: "Интерактивті карта", nav_food: "Тамақтану орындары", nav_shopping: "Заттар мен сауда", nav_ocr: "Құжат сканері",
-        sec_title: "Қауіпсіздік режимі", sec_desc: "Деректер серверде сақталмайды.", lang_select: "Тіл:",
-        chat_title: "GKS AI Көмекшісі", chat_welcome: "Сәлеметсіз бе! 👋 Кореядағы оқу туралы сұрағыңызды қойыңыз:",
-        send_btn: "Жіберу", visa_title: "ARC Виза мәртебесі", visa_status: "Құжаттарды тексеру", next_step: "Келесі қадам:",
-        visa_desc: "Көші-қон қызметіне бару (25 қыркүйек).", map_heading: "Кампус пен Сеул картасы", map_sub: "Асханалар, дүкендер мен орталықтарды HD картадан қараңыз.",
-        filter_all: "Барлығы", filter_food: "Тамақ", filter_shopping: "Сауда", food_heading: "Тамақтану нұсқаулығы",
-        food_sub: "Адал (Халал) тағамдар, студенттік асханалар және 24/7 дүкендер.", cafeteria_title: "Студенттер асханасы №101",
-        cafeteria_desc: "Күнделікті корей тағамдары. Студенттерге жеңілдік бар.", halal_title: "Makan Адал Рестораны",
-        halal_desc: "Сертификатталған адал корей тағамдары мен BBQ.", cu_title: "CU мен GS25 дүкендері (24/7)",
-        cu_desc: "Рамен, кимбап, кофе және T-Money картасын толтыру.", show_map: "Картадан көрсету",
-        shop_heading: "Заттар мен сауда орындары", shop_sub: "Жатақханаға қажетті заттарды арзан бағада сатып алу.",
-        daiso_title: "Daiso дүкені (Синчон)", daiso_desc: "1,000 - 5,000 вон аралығындағы 5 қабатты тұрмыстық дүкен.",
-        emart_title: "E-Mart гипермаркеті", emart_desc: "Азық-түлік пен ірі тұрмыстық заттар сататын супермаркет.",
-        ocr_heading: "Құжаттарды OCR сканерлеу", ocr_sub: "Корей тіліндегі хабарландыруларды қауіпсіз аудару.",
-        ocr_upload: "Үлгіні сканерлеу үшін басыңыз", ocr_privacy: "Деректер жадта өңделеді (сақталмайды).",
-        ocr_complete: "Сканерлеу аяқталды",
-        ocr_sample_trans: "[ARC ұзарту] D-2 визасындағы студенттер 30 қыркүйекке дейін оқу орнынан анықтама тапсыруы тиіс."
+        nav_dashboard: "Панель и ИИ",
+        nav_map: "Карта",
+        nav_food: "Где поесть",
+        nav_shopping: "Покупки",
+        nav_ocr: "OCR Переводчик",
+        select_language: "Выберите язык",
+        status_online: "GKS ИИ Онлайн",
+        header_subtitle: "• Район Сеульского Университета и Гид по Корее",
+        btn_scan_notice: "Сканировать документ",
+        ai_assistant_title: "ИИ Ментор GKS",
+        ai_assistant_subtitle: "Вопросы о визе D-2, карта ARC, банки, страховка и учеба",
+        chip_label: "Быстрые вопросы:",
+        chip_arc: "Как получить ARC?",
+        chip_visa: "Продление визы D-2",
+        chip_bank: "Банковский счет GKS",
+        chip_work: "Правила подработки",
+        chat_placeholder: "Задайте вопрос об учебе в Южной Корее...",
+        tracker_title: "Чек-лист обустройства GKS",
+        chk_entry: "Въезд в Корею и заселение в общежитие",
+        chk_bank: "Открытие счета в Hana/Kookmin",
+        chk_arc: "Запись на получение карты ARC",
+        chk_nhis: "Национальная мед. страховка NHIS",
+        chk_sim: "Корейская SIM-карта",
+        emergency_title: "Важные телефоны",
+        help_immigration: "Иммиграционный центр",
+        help_emergency: "Полиция / Скорая",
+        help_niied: "Отдел NIIED GKS",
+        map_title: "Карта кампуса и города",
+        map_subtitle: "Ключевые места для иностранных студентов",
+        map_filter_all: "Все места",
+        map_filter_food: "Еда и Кафе",
+        map_filter_shopping: "Покупки",
+        map_filter_services: "Иммиграция и Банки",
+        food_title: "Столовые и Халяль гид",
+        food_subtitle: "Бюджетные столовые, халяль еда и круглосуточные магазины",
+        food_1_title: "Студенческая столовая (Корпус 63)",
+        food_1_desc: "Доступные обеды, рамен и мороженое. Быстрый заказ через киоск.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Сертифицированный халяль кебаб и карри возле метро.",
+        food_3_title: "24/7 GS25 Круглосуточный",
+        food_3_desc: "Приготовление рамена, пополнение T-Money, готовые обеды.",
+        badge_budget: "3,500~5,500 KRW",
+        badge_halal: "Халяль",
+        badge_247: "24 Часа",
+        btn_show_map: "Показать на карте",
+        shop_title: "Покупки и Товары",
+        shop_subtitle: "Где купить недорогие товары для дома и продукты",
+        shop_1_title: "Daiso (Филиал Sillim)",
+        shop_1_desc: "Все для общежития: переходники, контейнеры, посуда и уборка.",
+        shop_2_title: "Гипермаркет E-Mart",
+        shop_2_desc: "Продукты, рисоварки, свежие овощи и электроника.",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "Главный б/у рынок Кореи: учебники, велосипеды, мебель.",
+        badge_groceries: "Продукты и Техника",
+        badge_secondhand: "Б/У Рынок",
+        btn_open_app: "Открыть гид",
+        ocr_title: "Сканер документов и OCR",
+        ocr_subtitle: "Сканируйте объявление общежития или бланки визы",
+        ocr_drop_text: "Нажмите или перетащите корейский документ",
+        ocr_drop_sub: "Поддержка PNG, JPG, PDF",
+        ocr_preset_label: "Или протестируйте на примерах:",
+        sample_1_title: "Объявление общежития",
+        sample_1_sub: "Проверка пожарной безопасности",
+        sample_2_title: "Иммиграционная форма 34",
+        sample_2_sub: "Заявление на карту ARC",
+        ocr_scanning: "Извлечение текста и перевод...",
+        ocr_results_title: "Результат сканирования",
+        ocr_raw_label: "Оригинальный текст (Корейский):",
+        ocr_trans_label: "Перевод (Выбранный язык):",
+        btn_copy_text: "Копировать перевод"
       },
       fr: {
-        nav_dashboard: "Tableau de bord", nav_map: "Carte Interactive", nav_food: "Où manger", nav_shopping: "Achats & Essentiels", nav_ocr: "OCR Documents",
-        sec_title: "Zero-Stockage Actif", sec_desc: "Masquage côté client activé.", lang_select: "Langue:",
-        chat_title: "Assistant AI GKS", chat_welcome: "Bonjour! 👋 Posez-moi vos questions sur les études en Corée:",
-        send_btn: "Envoyer", visa_title: "Suivi Visa ARC", visa_status: "Vérification documents", next_step: "Prochaine étape:",
-        visa_desc: "Rendez-vous à l'immigration (25 sept).", map_heading: "Navigation Carte Сеоул", map_sub: "Explorez les cafétérias et magasins en HD.",
-        filter_all: "Tous", filter_food: "Repas", filter_shopping: "Achats", food_heading: "Guide Restauration",
-        food_sub: "Options Halal, cafétérias pas chères et magasins 24/7.", cafeteria_title: "Cafétéria Étudiante 101",
-        cafeteria_desc: "Menus coréens quotidiens (Bibimbap). Réduction étudiante.", halal_title: "Restaurant Halal Makan",
-        halal_desc: "Cuisine coréenne certifiée Halal et BBQ.", cu_title: "Magasins CU / GS25 24/7",
-        cu_desc: "Ramen, kimbap, café et recharge carte T-Money.", show_map: "Voir sur la carte",
-        shop_heading: "Achats et Équipement", shop_sub: "Fournitures de dortoir et courses à petit prix.",
-        daiso_title: "Daiso Branche Sinchon", daiso_desc: "5 étages d'articles ménagers de ₩1 000 à ₩5 000.",
-        emart_title: "Supermarché E-Mart", emart_desc: "Grand supermarché pour la nourriture et articles en gros.",
-        ocr_heading: "Scanner OCR de Documents", ocr_sub: "Traduisez les avis coréens en toute sécurité.",
-        ocr_upload: "Cliquez pour scanner un exemple", ocr_privacy: "Traité en mémoire. Aucune donnée sauvegardée.",
-        ocr_complete: "Scan Terminé",
-        ocr_sample_trans: "[Avis de renouvellement ARC] Les étudiants D-2 doivent soumettre leur certificat avant le 30 sept."
+        nav_dashboard: "Tableau de bord & IA",
+        nav_map: "Carte Interactive",
+        nav_food: "Où manger",
+        nav_shopping: "Achats & Essentiels",
+        nav_ocr: "Traducteur OCR",
+        select_language: "Choisir la langue",
+        status_online: "IA GKS En ligne",
+        header_subtitle: "• Université Nationale de Séoul & Guide Corée",
+        btn_scan_notice: "Scanner un document",
+        ai_assistant_title: "Mentor IA GKS",
+        ai_assistant_subtitle: "Visa D-2, carte ARC, banque, assurance santé et vie étudiante",
+        chip_label: "Questions rapides:",
+        chip_arc: "Obtenir la carte ARC?",
+        chip_visa: "Renouvellement Visa D-2",
+        chip_bank: "Compte bancaire GKS",
+        chip_work: "Travail à mi-temps",
+        chat_placeholder: "Posez votre question sur les études en Corée...",
+        tracker_title: "Liste d'installation GKS",
+        chk_entry: "Arrivée en Corée & Check-in dortoir",
+        chk_bank: "Ouverture compte Hana/Kookmin",
+        chk_arc: "Rendez-vous Carte ARC",
+        chk_nhis: "Assurance Santé Nationale NHIS",
+        chk_sim: "Carte SIM coréenne",
+        emergency_title: "Numéros d'urgence",
+        help_immigration: "Centre d'Immigration",
+        help_emergency: "Police / Pompiers / Secours",
+        help_niied: "Bureau NIIED GKS",
+        map_title: "Carte Campus & Ville",
+        map_subtitle: "Lieux clés pour les étudiants internationaux",
+        map_filter_all: "Tous les lieux",
+        map_filter_food: "Repas & Cafés",
+        map_filter_shopping: "Shopping",
+        map_filter_services: "Immigration & Banques",
+        food_title: "Cafétérias & Guide Halal",
+        food_subtitle: "Restos universitaires économiques, certifiés halal et 24/7",
+        food_1_title: "Cafétéria Étudiante (Bât. 63)",
+        food_1_desc: "Menus coréens abordables, станция ramen et glaces.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Kebabs halal certifiés, wraps et currys à la sortie 3 du métro.",
+        food_3_title: "GS25 Superette 24/7",
+        food_3_desc: "Machine à ramen instantané, recharge T-Money et plats cuisinés.",
+        badge_budget: "3 500~5 500 KRW",
+        badge_halal: "Certifié Halal",
+        badge_247: "24h/24",
+        btn_show_map: "Voir sur la carte",
+        shop_title: "Shopping & Essentiels",
+        shop_subtitle: "Où acheter articles de maison et seconde main",
+        shop_1_title: "Daiso (Sillim)",
+        shop_1_desc: "Incontournable dortoir: adaptateurs, rangements, vaisselle.",
+        shop_2_title: "Hyper-marché E-Mart",
+        shop_2_desc: "Grand supermarché pour produits frais, cuiseurs à riz et tech.",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "Application d'occasion #1 en Corée pour livres, vélos et meubles.",
+        badge_groceries: "Épicerie & High-Tech",
+        badge_secondhand: "App Seconde Main",
+        btn_open_app: "Ouvrir le guide",
+        ocr_title: "Scanner OCR & Traduction",
+        ocr_subtitle: "Scannez les avis de dortoir ou formulaires d'immigration",
+        ocr_drop_text: "Cliquez ou glissez un document coréen ici",
+        ocr_drop_sub: "Formats PNG, JPG, PDF acceptés",
+        ocr_preset_label: "Ou testez avec nos exemples:",
+        sample_1_title: "Notice du Dortoir",
+        sample_1_sub: "Inspection incendie & règles",
+        sample_2_title: "Formulaire Immigration 34",
+        sample_2_sub: "Demande de carte ARC",
+        ocr_scanning: "Extraction du texte & traduction...",
+        ocr_results_title: "Résultat de l'analyse OCR",
+        ocr_raw_label: "Texte Original (Coréen):",
+        ocr_trans_label: "Traduction (Langue active):",
+        btn_copy_text: "Copier la traduction"
       },
       es: {
-        nav_dashboard: "Panel", nav_map: "Mapa Interactivo", nav_food: "Dónde comer", nav_shopping: "Compras y Tiendas", nav_ocr: "Escáner OCR",
-        sec_title: "Sin Almacenamiento", sec_desc: "Enmascaramiento de datos activo.", lang_select: "Idioma:",
-        chat_title: "Asistente AI GKS", chat_welcome: "¡Hola! 👋 Pregúntame sobre tus estudios en Corea:",
-        send_btn: "Enviar", visa_title: "Estado de Visa ARC", visa_status: "Revisión de documentos", next_step: "Siguiente paso:",
-        visa_desc: "Cita en Inmigración (25 de sept).", map_heading: "Navegación por Mapa", map_sub: "Explora cafeterías y tiendas cercanas en HD.",
-        filter_all: "Todos", filter_food: "Comida", filter_shopping: "Compras", food_heading: "Guía de Comida",
-        food_sub: "Opciones Halal, cafeterías económicas y tiendas 24/7.", cafeteria_title: "Cafetería Estudiantil 101",
-        cafeteria_desc: "Menús coreanos diarios (Bibimbap). Descuento estudiantil.", halal_title: "Restaurante Halal Makan",
-        halal_desc: "Comida coreana certificada Halal y barbacoa.", cu_title: "Tiendas CU / GS25 24/7",
-        cu_desc: "Ramen, kimbap, café y recarga de tarjeta T-Money.", show_map: "Ver en el mapa",
-        shop_heading: "Compras y Artículos", shop_sub: "Artículos para residencia y alimentos a buen precio.",
-        daiso_title: "Daiso Sucursal Sinchon", daiso_desc: "5 pisos de artículos para el hogar de ₩1,000 a ₩5,000.",
-        emart_title: "Supermercado E-Mart", emart_desc: "Supermercado grande para alimentos frescos y artículos.",
-        ocr_heading: "Escáner OCR de Documentos", ocr_sub: "Traduce avisos oficiales coreanos de forma segura.",
-        ocr_upload: "Haz clic para escanear un documento", ocr_privacy: "Procesado en memoria. Sin registro de datos.",
-        ocr_complete: "Escaneo Completado",
-        ocr_sample_trans: "[Renovación ARC] Estudiantes D-2 deben presentar certificado antes del 30 de sept."
+        nav_dashboard: "Panel e IA",
+        nav_map: "Mapa Interactivo",
+        nav_food: "Dónde Comer",
+        nav_shopping: "Compras y Esenciales",
+        nav_ocr: "Traductor OCR",
+        select_language: "Seleccionar Idioma",
+        status_online: "GKS IA En línea",
+        header_subtitle: "• Área de Universidad Nacional de Seúl y Guía Nacional",
+        btn_scan_notice: "Escanear Documento",
+        ai_assistant_title: "Mentor IA GKS",
+        ai_assistant_subtitle: "Preguntas sobre Visa D-2, tarjeta ARC, bancos y vida universitaria",
+        chip_label: "Consultas rápidas:",
+        chip_arc: "¿Cómo obtener ARC?",
+        chip_visa: "Extensión Visa D-2",
+        chip_bank: "Cuenta de Banco GKS",
+        chip_work: "Trabajo a tiempo parcial",
+        chat_placeholder: "Pregunta cualquier cosa sobre estudiar en Corea del Sur...",
+        tracker_title: "Lista de Verificación GKS",
+        chk_entry: "Llegada a Corea y Check-in residencia",
+        chk_bank: "Abrir cuenta en Hana/Kookmin Bank",
+        chk_arc: "Cita para Tarjeta ARC",
+        chk_nhis: "Seguro Médico Nacional NHIS",
+        chk_sim: "Tarjeta SIM Coreana",
+        emergency_title: "Teléfonos de Emergencia",
+        help_immigration: "Centro de Inmigración",
+        help_emergency: "Policía / Ambulancia",
+        help_niied: "Mesa GKS NIIED",
+        map_title: "Mapa del Campus y Ciudad",
+        map_subtitle: "Puntos clave para estudiantes internacionales",
+        map_filter_all: "Todos",
+        map_filter_food: "Comida y Cafés",
+        map_filter_shopping: "Compras",
+        map_filter_services: "Inmigración y Bancos",
+        food_title: "Comedores Estudiantiles y Guía Halal",
+        food_subtitle: "Cafeterías universitarias económicas, comida halal y 24/7",
+        food_1_title: "Cafetería Estudiantil (Edificio 63)",
+        food_1_desc: "Menús coreanos económicos, estación de ramen y helados.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Kebabs halal certificados y currys en la salida 3 del metro.",
+        food_3_title: "Convenience Store GS25 24/7",
+        food_3_desc: "Ramen instantáneo, recarga de T-Money y platos preparados.",
+        badge_budget: "3,500~5,500 KRW",
+        badge_halal: "Certificado Halal",
+        badge_247: "24 Horas",
+        btn_show_map: "Ver en el mapa",
+        shop_title: "Compras y Esenciales",
+        shop_subtitle: "Dónde comprar artículos para el hogar y de segunda mano",
+        shop_1_title: "Daiso (Sucursal Sillim)",
+        shop_1_desc: "Imprescindible para el dormitorio: adaptadores, cajas y vajilla.",
+        shop_2_title: "Hipermercado E-Mart",
+        shop_2_desc: "Gran supermercado para comida fresca, arroceras y tecnología.",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "App #1 en Corea para compraventa de libros, bicis y muebles.",
+        badge_groceries: "Comida y Tecnología",
+        badge_secondhand: "App Segunda Mano",
+        btn_open_app: "Abrir Guía",
+        ocr_title: "Escáner de Documentos u OCR",
+        ocr_subtitle: "Escanea avisos de la residencia o formularios de Inmigración",
+        ocr_drop_text: "Haz clic o arrastra un documento coreano aquí",
+        ocr_drop_sub: "Soporta PNG, JPG, PDF",
+        ocr_preset_label: "O prueba con documentos de ejemplo:",
+        sample_1_title: "Aviso de Residencia",
+        sample_1_sub: "Inspección de incendios",
+        sample_2_title: "Formulario Inmigración 34",
+        sample_2_sub: "Solicitud de Tarjeta ARC",
+        ocr_scanning: "Extrayendo texto y traduciendo...",
+        ocr_results_title: "Resultado de Análisis OCR",
+        ocr_raw_label: "Texto Original (Coreano):",
+        ocr_trans_label: "Traducción (Idioma actual):",
+        btn_copy_text: "Copiar Traducción"
       },
       ar: {
-        nav_dashboard: "لوحة التحكم", nav_map: "الخريطة التفاعلية", nav_food: "أماكن الطعام", nav_shopping: "التسوق والمستلزمات", nav_ocr: "ماسح المستندات",
-        sec_title: "حماية البيانات مفعلة", sec_desc: "معالجة فورية بدون حفظ البيانات.", lang_select: "اللغة:",
-        chat_title: "مساعد GKS الذكي", chat_welcome: "مرحباً بك! 👋 اسألني أي شيء عن الدراسة في كوريا:",
-        send_btn: "إرسال", visa_title: "تتبع تأشيرة ARC", visa_status: "فحص المستندات", next_step: "الخطوة التالية:",
-        visa_desc: "زيارة مكتب الهجرة (25 سبتمبر).", map_heading: "خريطة حرم الجامعة وسيئول", map_sub: "استكشف المطاعم والمتاجر ومكاتب الهجرة بدقة عالية.",
-        filter_all: "الكل", filter_food: "طعام", filter_shopping: "تسوق", food_heading: "دليل المطاعم",
-        food_sub: "مطاعم حلال، مطاعم جامعية رخيصة، ومتاجر 24/7.", cafeteria_title: "المطعم الطلابي 101",
-        cafeteria_desc: "وجبات كورية يومية (بي بيم باب). خصم للطلاب.", halal_title: "مطعم مكان الحلال",
-        halal_desc: "وجبات كورية حلال معتمدة ووجبات شواء.", cu_title: "متاجر CU و GS25 (24/7)",
-        cu_desc: "رامن، كيمباب، قهوة، وشحن بطاقة المواصلات T-Money.", show_map: "عرض على الخريطة",
-        shop_heading: "التسوق والمستلزمات", shop_sub: "تجهيز السكن الجامعي والمشتريات بأسعار مناسبة.",
-        daiso_title: "متجر دايسو (فرع سينتشون)", daiso_desc: "5 طوابق من المستلزمات المنزلية الرخيصة (1000 - 5000วอน).",
-        emart_title: "متجر إيمارت الكبير", emart_desc: "متجر ضخم للأغذية الطازجة والمستلزمات بأسعار الجملة.",
-        ocr_heading: "ماسح ومترجم المستندات OCR", ocr_sub: "ترجمة الإشعارات الرسمية الكورية بأمان.",
-        ocr_upload: "انقر هنا لمسح مستند توضيحي", ocr_privacy: "معالجة في الذاكرة المؤقتة فقط بدون حفظ.",
-        ocr_complete: "اكتمل المسح الضوئي",
-        ocr_sample_trans: "[تجديد بطاقة الإقامة ARC] يجب على جميع طلاب D-2 تقديم شهادة التسجيل قبل 30 سبتمبر."
+        nav_dashboard: "اللوحة والذكاء الاصطناعي",
+        nav_map: "الخريطة التفاعلية",
+        nav_food: "أماكن الطعام",
+        nav_shopping: "التسوق والمستلزمات",
+        nav_ocr: "مترجم المستندات OCR",
+        select_language: "اختر اللغة",
+        status_online: "مساعد GKS متصل",
+        header_subtitle: "• منطقة جامعة سيول الوطنية ودليل كوريا",
+        btn_scan_notice: "مسح إشعار كوري",
+        ai_assistant_title: "المرشد الذكي لطلاب GKS",
+        ai_assistant_subtitle: "اسأل عن تأشيرة D-2، بطاقة ARC، البنوك، والتأمين الصحي",
+        chip_label: "أسئلة شائعة:",
+        chip_arc: "كيف أحصل على ARC؟",
+        chip_visa: "تجديد تأشيرة D-2",
+        chip_bank: "حساب بنك GKS",
+        chip_work: "قواعد العمل الجزئي",
+        chat_placeholder: "اسأل عن أي شيء يتعلق بالدراسة في كوريا الجنوبية...",
+        tracker_title: "قائمة مهام الاستقرار في كوريا",
+        chk_entry: "الوصول لكوريا واستلام السكن",
+        chk_bank: "فتح حساب بنكي (Hana / Kookmin)",
+        chk_arc: "حجز موعد بطاقة الإقامة ARC",
+        chk_nhis: "التسجيل في التأمين الصحي الوطني",
+        chk_sim: "استخراج شريحة اتصال كورية",
+        emergency_title: "أرقام الطوارئ الهامة",
+        help_immigration: "مركز استعلامات الهجرة",
+        help_emergency: "الشرطة / الإسعاف والإطفاء",
+        help_niied: "مكتب GKS - NIIED",
+        map_title: "خريطة الجامعة والمدينة",
+        map_subtitle: "أهم الأماكن للطلاب الدوليين حول جامعة سيول",
+        map_filter_all: "جميع الأماكن",
+        map_filter_food: "مطاعم ومقاهي",
+        map_filter_shopping: "التسوق",
+        map_filter_services: "الهجرة والبنوك",
+        food_title: "مطاعم الطلاب ودليل الحلال",
+        food_subtitle: "مطاعم جامعية اقتصادية، طعام حلال معتمد، ومتاجر 24 ساعة",
+        food_1_title: "مطعم الطلاب (مبنى 63)",
+        food_1_desc: "وجبات كورية يومية بأسعار مخفضة، قسم الرامن، وأجهزة طلب ذاتية.",
+        food_2_title: "كباب وكاري سيول الحلال",
+        food_2_desc: "وجبات دجاج حلال معتمدة ولفائف كباب بجوار مخرج المترو 3.",
+        food_3_title: "متجر GS25 على مدار 24 ساعة",
+        food_3_desc: "جهاز طهي الرامن السريع، شحن بطاقة T-Money، وجبات جاهزة.",
+        badge_budget: "3,500~5,500วอน",
+        badge_halal: "حلال معتمد",
+        badge_247: "24 ساعة",
+        btn_show_map: "عرض على الخريطة",
+        shop_title: "التسوق والمستلزمات الأساسية",
+        shop_subtitle: "أين تشتري المستلزمات المنزلية والأثاث المستعمل بأسعار رخيصة",
+        shop_1_title: "دايسو Daiso (فرع سيليم)",
+        shop_1_desc: "المكان الأول لتجهيز السكن: محولات الكهرباء، صناديق التخزين، وأدوات النظافة.",
+        shop_2_title: "متجر E-Mart الكبير",
+        shop_2_desc: "سوبرماركت ضخم للمواد الغذائية الطازجة، أجهزة طهي الأرز، والإلكترونيات.",
+        shop_3_title: "تطبيق Karrot Market (당근마켓)",
+        shop_3_desc: "التطبيق الأول لشراء الكتب الدراسية المستعملة والدراجات والأثاث.",
+        badge_groceries: "بقالة وإلكترونيات",
+        badge_secondhand: "تطبيق المستعمل",
+        btn_open_app: "فتح الدليل",
+        ocr_title: "ماسح ومترجم المستندات الكورية OCR",
+        ocr_subtitle: "امسح إشعارات السكن الجامعي أو استمارات الهجرة للترجمة الفورية",
+        ocr_drop_text: "انقر أو اسحب المستند الكوري هنا",
+        ocr_drop_sub: "يدعم صيغ PNG, JPG, PDF",
+        ocr_preset_label: "أو اختبر نماذج المستندات الجاهزة:",
+        sample_1_title: "إشعار السكن الجامعي",
+        sample_1_sub: "تفاصيل تفتيش السلامة من الحريق",
+        sample_2_title: "نموذج الهجرة رقم 34",
+        sample_2_sub: "طلب بطاقة التسجيل للأجانب ARC",
+        ocr_scanning: "جاري استخراج النص الكوري والترجمة...",
+        ocr_results_title: "تحليل نتائج النص المستخرج",
+        ocr_raw_label: "النص الأصلي (الكورية):",
+        ocr_trans_label: "الترجمة (اللغة الحالية):",
+        btn_copy_text: "نسخ الترجمة"
       },
       ja: {
-        nav_dashboard: "ダッシュボード", nav_map: "インタラクティブマップ", nav_food: "グルメガイド", nav_shopping: "ショッピング", nav_ocr: "OCR文書翻訳",
-        sec_title: "セキュリティモード", sec_desc: "クライアント側でデータ匿名化処理中。", lang_select: "言語選択:",
-        chat_title: "GKS AI アシスタント", chat_welcome: "こんにちは！👋 韓国留学について何でも質問してください:",
-        send_btn: "送信", visa_title: "ARCビザ申請状況", visa_status: "書類確認中", next_step: "次のステップ:",
-        visa_desc: "出入国管理事務所の訪問（9月25日予定）。", map_heading: "キャンパス＆ソウル詳細マップ", map_sub: "周辺の食堂、ショップ、出入国管理所をHDマップで確認。",
-        filter_all: "すべて", filter_food: "食事", filter_shopping: "買い物", food_heading: "キャンパス周辺グルメ",
-        food_sub: "ハラル対応店、格安学食、24時間コンビニのご案内。", cafeteria_title: "101号館 学生食堂",
-        cafeteria_desc: "日替わり韓国料理（ビビンバ、チゲ類）。学割適用。", halal_title: "Makan ハラルレストラン",
-        halal_desc: "ハラル認証の韓国料理ダッカルビ＆プルコギ専門店。", cu_title: "CU / GS25 コンビニ (24時間)",
-        cu_desc: "ラーメン、キンパ、コーヒー、T-Moneyカードのチャージ。", show_map: "マップで見る",
-        shop_heading: "ショッピング＆生活用品", shop_sub: "寮に必要な生活用品や家具を予算に合わせて購入。",
-        daiso_title: "ダイソー 新村本店", daiso_desc: "1,000ウォン〜5,000ウォンの格安5階建て生活用品店。",
-        emart_title: "E-Mart 新村店", emart_desc: "生鮮食品やまとめ買いに便利な大型スーパーマーケット。",
-        ocr_heading: "OCR文書スキャナー＆翻訳", ocr_sub: "韓国語のお知らせや請求書を safe に翻訳します。",
-        ocr_upload: "クリックしてサンプル文書をスキャン", ocr_privacy: "メモリ内で即時処理（サーバー保存なし）。",
-        ocr_complete: "スキャン完了",
-        ocr_sample_trans: "[ARC延長のご案内] D-2ビザの学生は9月30日までに在学証明書を提出してください。"
+        nav_dashboard: "ダッシュボード & AI",
+        nav_map: "マップ",
+        nav_food: "グルメガイド",
+        nav_shopping: "ショッピング",
+        nav_ocr: "OCR 翻訳機",
+        select_language: "言語を選択",
+        status_online: "GKS AI オンライン",
+        header_subtitle: "• ソウル大学周辺 & 韓国 punct 案内",
+        btn_scan_notice: "韓国語書類をスキャン",
+        ai_assistant_title: "GKS奨学生 AIメンター",
+        ai_assistant_subtitle: "D-2ビザ、外国人登録証(ARC)、銀行口座、保険について質問",
+        chip_label: "クイック質問:",
+        chip_arc: "ARCの申請方法は？",
+        chip_visa: "D-2ビザの延長手続き",
+        chip_bank: "GKS奨学金口座の開設",
+        chip_work: "アルバイトの許可規定",
+        chat_placeholder: "韓国留学生活について何でも質問してください...",
+        tracker_title: "GKS 定착チェックリスト",
+        chk_entry: "韓国入国 & 宿舎チェックイン",
+        chk_bank: "ハナ/国民銀行 口座開設",
+        chk_arc: "外国人登録証(ARC) 訪問予約",
+        chk_nhis: "国民健康保険 加入確認",
+        chk_sim: "韓国SIMカード/携帯開通",
+        emergency_title: "緊急連絡先",
+        help_immigration: "出入国外国人庁コールセンター",
+        help_emergency: "警察 / 消防・救급",
+        help_niied: "NIIED GKSデスク",
+        map_title: "キャンパス & 生活マップ",
+        map_subtitle: "ソウル大学周辺の留学生向け主要施設",
+        map_filter_all: "すべての場所",
+        map_filter_food: "食堂・カフェ",
+        map_filter_shopping: "ショッピング",
+        map_filter_services: "出入国 & 銀行",
+        food_title: "学食 & ハラールガイド",
+        food_subtitle: "コスパ抜群の学食、ハラール認証店、24時間コンビニ",
+        food_1_title: "学生食堂 (63棟)",
+        food_1_desc: "格安のDaily定食、ラーメンコーナー、ソフトクリーム。食券機対応。",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "駅3番出口すぐ。認証ハラールチキンボウルとカレー店。",
+        food_3_title: "24時間 GS25 コンビニ",
+        food_3_desc: "即席ラーメン調理器、T-Moneyカード充電、お弁当コーナー。",
+        badge_budget: "3,500~5,500 KRW",
+        badge_halal: "ハラール認証",
+        badge_247: "24時間営業",
+        btn_show_map: "マップで表示",
+        shop_title: "ショッピング & 生活必需品",
+        shop_subtitle: "日用品、食料品、中古取引アプリの案内",
+        shop_1_title: "ダイソー (新林店)",
+        shop_1_desc: "寮生活の必需品：変換プラグ、収納ボックス、食器、清掃用品。",
+        shop_2_title: "E-Mart 九老店",
+        shop_2_desc: "生鮮食品、炊飯器、デスクライト、家電が揃う大型スーパー。",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "韓国No.1のフリマアプリ。専門書、自転車、家具の取引に最適。",
+        badge_groceries: "食料品 & 家電",
+        badge_secondhand: "フリマアプリ",
+        btn_open_app: "ガイドを開く",
+        ocr_title: "韓国語書類スキャン & OCR",
+        ocr_subtitle: "大学の通知書や出入国書類を瞬時に翻訳",
+        ocr_drop_text: "クリックまたは韓国語の書類をドラッグ",
+        ocr_drop_sub: "PNG, JPG, PDF 対応",
+        ocr_preset_label: "サンプル文書でテスト:",
+        sample_1_title: "大学寄宿舎の案内",
+        sample_1_sub: "門限と消防点検のお知らせ",
+        sample_2_title: "出入国 統合申請書 34号",
+        sample_2_sub: "外国人登録の申請様式",
+        ocr_scanning: "ハングル抽出 & 翻訳中...",
+        ocr_results_title: "書類解析結果",
+        ocr_raw_label: "原文 (韓国語):",
+        ocr_trans_label: "翻訳 (選択中の言語):",
+        btn_copy_text: "翻訳をコピー"
       },
       zh: {
-        nav_dashboard: "仪表板", nav_map: "交互式地图", nav_food: "美食指南", nav_shopping: "购物与生活", nav_ocr: "文档OCR翻译",
-        sec_title: "安全隐私模式 Active", sec_desc: "客户端数据脱敏，无服务器留存。", lang_select: "选择语言:",
-        chat_title: "GKS AI 助手", chat_welcome: "您好！👋 关于在韩留学有任何问题请随时提问：",
-        send_btn: "发送", visa_title: "ARC 签证进度", visa_status: "材料审核中", next_step: "下一步：",
-        visa_desc: "前往出入境管理局（9月25日）。", map_heading: "校园及首尔高清地图", map_sub: "在高清地图上探索附近的食堂、商店和出入境办公室。",
-        filter_all: "全部", filter_food: "美食", filter_shopping: "购物", food_heading: "校园及周边美食",
-        food_sub: "清真餐厅、便宜的学生食堂和24小时便利店。", cafeteria_title: "101号馆 学生食堂",
-        cafeteria_desc: "每日更换的韩餐套餐（石锅拌饭、汤类）。学生享有折扣。", halal_title: "Makan 清真餐厅",
-        halal_desc: "清真认证的韩国炒鸡排、烤肉等传统美食。", cu_title: "CU & GS25 便利店 (24小时)",
-        cu_desc: "方便面、三角饭团、咖啡以及交通卡充值服务。", show_map: "在地图上显示",
-        shop_heading: "购物与生活用品", shop_sub: "在预算内购买宿舍用品、家具和日常采买。",
-        daiso_title: "Daiso 大创 (新村本店)", daiso_desc: "5层楼的大型百货店，商品价格介于 ₩1,000–₩5,000。",
-        emart_title: "E-Mart 易买得超市", emart_desc: "大型综合超市，适合采购新鲜食材和大包宿舍用品。",
-        ocr_heading: "文档 OCR 扫描与翻译", ocr_sub: "安全翻译韩国大学通知和缴费单。",
-        ocr_upload: "点击此处扫描示例文档", ocr_privacy: "仅在内存中实时处理，绝不保存文件。",
-        ocr_complete: "扫描完成",
-        ocr_sample_trans: "[ARC外国人登录证延期通知] 所有D-2签证学生须在9月30日前提交在学证明。"
+        nav_dashboard: "仪表盘与AI",
+        nav_map: "互动地图",
+        nav_food: "美食指南",
+        nav_shopping: "购物与生活",
+        nav_ocr: "文档OCR翻译",
+        select_language: "选择语言",
+        status_online: "GKS AI 在线",
+        header_subtitle: "• 首尔大学周边及全韩留学生指南",
+        btn_scan_notice: "扫描韩国通知",
+        ai_assistant_title: "GKS 奖学金 AI 导师",
+        ai_assistant_subtitle: "解答 D-2 签证、外国人登录证(ARC)、银行开户及保险问题",
+        chip_label: "快捷提问:",
+        chip_arc: "如何办理 ARC 登录证？",
+        chip_visa: "D-2 签证延期流程",
+        chip_bank: "GKS 奖学金银行账户",
+        chip_work: "兼职打工(알바) 规定",
+        chat_placeholder: "输入关于在韩留学的任何问题...",
+        tracker_title: "GKS 安家清单",
+        chk_entry: "入境韩国及宿舍入住",
+        chk_bank: "办理韩亚/国民银行卡",
+        chk_arc: "预约外国人登录证(ARC)",
+        chk_nhis: "确认国民健康保险",
+        chk_sim: "办理韩国手机卡/USIM",
+        emergency_title: "重要求助电话",
+        help_immigration: "出入境综合出入中心",
+        help_emergency: "报警 / 消防急救",
+        help_niied: "国立国际教育院 GKS 窗口",
+        map_title: "校园与生活地图",
+        map_subtitle: "首尔大学周边留学生核心设施",
+        map_filter_all: "全部地点",
+        map_filter_food: "餐饮与咖啡",
+        map_filter_shopping: "购物与超市",
+        map_filter_services: "出入境与银行",
+        food_title: "学生食堂与清真指南",
+        food_subtitle: "高性价比学生食堂、认证清真餐厅及24小时便利店",
+        food_1_title: "学生食堂 (63栋)",
+        food_1_desc: "实惠的每日韩式定食、拉面档口及冰淇淋。自助机快速点餐。",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "地铁站3号出口旁，认证清真烤肉饭、卷饼和咖喱店。",
+        food_3_title: "24小时 GS25 便利店",
+        food_3_desc: "煮拉面机器、T-Money 交通卡充值、便当及进口零食。",
+        badge_budget: "3,500~5,500 韩元",
+        badge_halal: "清真认证",
+        badge_247: "24小时营业",
+        btn_show_map: "在地图上查看",
+        shop_title: "购物与生活必需品",
+        shop_subtitle: "购买便宜家居用品、生鲜食品及二手家具指南",
+        shop_1_title: "Daiso 达创 (新林店)",
+        shop_1_desc: "宿舍必备：转换插头、收纳盒、床上用品及清洁用品。",
+        shop_2_title: "E-Mart 易买得 (九老店)",
+        shop_2_desc: "大型超市：新鲜食材、电饭煲、台灯及电子产品。",
+        shop_3_title: "胡萝卜二手 App (당근마켓)",
+        shop_3_desc: "韩国第一二手交易平台，买卖二手教材、自行车及家具。",
+        badge_groceries: "食品与家电",
+        badge_secondhand: "二手交易 App",
+        btn_open_app: "打开指南",
+        ocr_title: "韩国官方文档扫描与 OCR",
+        ocr_subtitle: "即时扫描翻译宿舍通知、出入境表格及缴费单",
+        ocr_drop_text: "点击或拖拽韩文文档至此处",
+        ocr_drop_sub: "支持 PNG, JPG, PDF (宿舍通知、签证表格)",
+        ocr_preset_label: "或使用示例文档进行测试：",
+        sample_1_title: "大学宿舍通知",
+        sample_1_sub: "宵禁及消防检查说明",
+        sample_2_title: "出入境综合申请表 34号",
+        sample_2_sub: "外国人登录申请样表",
+        ocr_scanning: "正在提取韩文文本并翻译...",
+        ocr_results_title: "文档提取分析结果",
+        ocr_raw_label: "原文 (韩语):",
+        ocr_trans_label: "翻译结果 (当前语言):",
+        btn_copy_text: "复制翻译"
+      },
+      kk: {
+        nav_dashboard: "Панель және AI",
+        nav_map: "Интерактивті карта",
+        nav_food: "Тамақтану орындары",
+        nav_shopping: "Заттар мен дүкендер",
+        nav_ocr: "OCR Аудармашы",
+        select_language: "Тілді таңдау",
+        status_online: "GKS AI Онлайн",
+        header_subtitle: "• Сеул Ұлттық Университеті аймағы мен Корея нұсқаулығы",
+        btn_scan_notice: "Құжатты сканерлеу",
+        ai_assistant_title: "GKS AI Менторы",
+        ai_assistant_subtitle: "D-2 визасы, ARC картасы, банк, сақтандыру туралы сұрақтар",
+        chip_label: "Жылдам сұрақтар:",
+        chip_arc: "ARC картасын қалай алуға болады?",
+        chip_visa: "D-2 визасын ұзарту",
+        chip_bank: "GKS Банк есепшоты",
+        chip_work: "Жұмыс істеу ережелері",
+        chat_placeholder: "Кореяда оқу туралы кез келген сұрақ қойыңыз...",
+        tracker_title: "GKS Оны орналастыру тізімі",
+        chk_entry: "Кореяға келу және жатақханаға орналасу",
+        chk_bank: "Hana/Kookmin банкінен есепшот ашу",
+        chk_arc: "ARC картасына кезекке жазылу",
+        chk_nhis: "Ұлттық медициналық сақтандыру",
+        chk_sim: "Кореялық SIM-карта алу",
+        emergency_title: "Маңызды байланыс номерлері",
+        help_immigration: "Иммиграциялық орталық",
+        help_emergency: "Полиция / Жедел жәрдем",
+        help_niied: "NIIED GKS бөлімі",
+        map_title: "Кампус және қала картасы",
+        map_subtitle: "Шетелдік студенттерге арналған маңызды орындар",
+        map_filter_all: "Барлық орындар",
+        map_filter_food: "Тамақ және Кофе",
+        map_filter_shopping: "Дүкендер",
+        map_filter_services: "Иммиграция және Банктер",
+        food_title: "Студенттік асханалар мен Халал гид",
+        food_subtitle: "Арзан студенттік асханалар, халал тағамдар және 24/7 дүкендер",
+        food_1_title: "Студенттік асхана (63-ғимарат)",
+        food_1_desc: "Тімді корей тағамдары, рамен және балмұздақ. Автоматты тапсырыс.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Метро шығысындағы сертификатталған халал кебаб және кари.",
+        food_3_title: "24/7 GS25 Дүкені",
+        food_3_desc: "Рамен пісіру аппараты, T-Money картасын толтыру және дайын тамақтар.",
+        badge_budget: "3,500~5,500 KRW",
+        badge_halal: "Халал Сертификатты",
+        badge_247: "24 Сағат",
+        btn_show_map: "Картадан көрсету",
+        shop_title: "Заттар мен дүкендер",
+        shop_subtitle: "Арзан тұрмыстық бұйымдар мен қолданылған заттар",
+        shop_1_title: "Daiso (Sillim филиалы)",
+        shop_1_desc: "Жатақханаға қажетті заттар: өту адапретлері, ыдыстар, тазалық заттары.",
+        shop_2_title: "E-Mart Гипермаркеті",
+        shop_2_desc: "Үлкен супермаркет: жаңа азық-түлік, күріш пісіргіш, электроника.",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "Кореядағы №1 қолданылған заттар қосымшасы: кітаптар, велосипедтер.",
+        badge_groceries: "Азық-түлік мен Техника",
+        badge_secondhand: "Қолданылған заттар",
+        btn_open_app: "Нұсқаулықты ашу",
+        ocr_title: "Корей құжаттарын сканерлеу мен OCR",
+        ocr_subtitle: "Жатақхана хабарландырулары мен виза бланкілерін аудару",
+        ocr_drop_text: "Корейше құжатты осы жерге басыңыз немесе сүйреңіз",
+        ocr_drop_sub: "PNG, JPG, PDF форматтары",
+        ocr_preset_label: "Үлгі құжаттармен тексеріңіз:",
+        sample_1_title: "Жатақхана хабарландыруы",
+        sample_1_sub: "Өрт қауіпсіздігін тексеру",
+        sample_2_title: "Иммиграциялық форма №34",
+        sample_2_sub: "ARC картасын алу өтініші",
+        ocr_scanning: "Мәтінді оқу және аудару...",
+        ocr_results_title: "Аударма нәтижесі",
+        ocr_raw_label: "Түпнұсқа мәтін (Корейше):",
+        ocr_trans_label: "Аударма (Тандалған тіл):",
+        btn_copy_text: "Аударманы көшіру"
       },
       pt: {
-        nav_dashboard: "Painel", nav_map: "Mapa Interativo", nav_food: "Onde Comer", nav_shopping: "Compras e Loja", nav_ocr: "Digitalizar OCR",
-        sec_title: "Sem Armazenamento Active", sec_desc: "Mascaramento de dados ativado.", lang_select: "Idioma:",
-        chat_title: "Assistente AI GKS", chat_welcome: "Olá! 👋 Pergunte-me qualquer coisa sobre estudar na Coreia:",
-        send_btn: "Enviar", visa_title: "Status do Visto ARC", visa_status: "Verificação de Documentos", next_step: "Próximo Passo:",
-        visa_desc: "Visita à Imigração (25 de Set).", map_heading: "Navegação do Mapa de Seul", map_sub: "Explore refeitórios e lojas próximas em HD.",
-        filter_all: "Todos", filter_food: "Comida", filter_shopping: "Compras", food_heading: "Guia de Restauração",
-        food_sub: "Opções Halal, refeitórios baratos e lojas 24/7.", cafeteria_title: "Refeitório Estudantil 101",
-        cafeteria_desc: "Pratos coreanos diários (Bibimbap). Desconto para estudantes.", halal_title: "Restaurante Halal Makan",
-        halal_desc: "Comida coreana certificada Halal e churrasco.", cu_title: "Lojas CU / GS25 24/7",
-        cu_desc: "Ramen, kimbap, café e recarga do cartão T-Money.", show_map: "Mostrar no Mapa",
-        shop_heading: "Compras e Essenciais", shop_sub: "Compre suprimentos para o dormitório no seu orçamento.",
-        daiso_title: "Daiso Filial Sinchon", daiso_desc: "5 andares de itens domésticos baratos de ₩1.000 a ₩5.000.",
-        emart_title: "Supermercado E-Mart", emart_desc: "Grande supermercado para alimentos frescos e suprimentos.",
-        ocr_heading: "Scanner OCR de Documentos", ocr_sub: "Traduza avisos coreanos com segurança.",
-        ocr_upload: "Clique para digitalizar um documento", ocr_privacy: "Processado em memória. Nenhuma retenção.",
-        ocr_complete: "Digitalização Concluída",
-        ocr_sample_trans: "[Renovação do ARC] Alunos D-2 devem enviar o comprovante de matrícula até 30 de Set."
+        nav_dashboard: "Painel & IA",
+        nav_map: "Mapa Interativo",
+        nav_food: "Onde Comer",
+        nav_shopping: "Compras & Essenciais",
+        nav_ocr: "Tradutor OCR",
+        select_language: "Selecionar Idioma",
+        status_online: "IA GKS Online",
+        header_subtitle: "• Área da Universidade Nacional de Seul & Guia",
+        btn_scan_notice: "Escanear Documento",
+        ai_assistant_title: "Mentor IA para Bolsistas GKS",
+        ai_assistant_subtitle: "Dúvidas sobre Visto D-2, Cartão ARC, Bancos, Seguro e Vida Universitária",
+        chip_label: "Consultas rápidas:",
+        chip_arc: "Como obter o ARC?",
+        chip_visa: "Renovação do Visto D-2",
+        chip_bank: "Conta Bancária GKS",
+        chip_work: "Regras de Trabalho Parcial",
+        chat_placeholder: "Pergunte qualquer coisa sobre estudar na Coreia do Sul...",
+        tracker_title: "Lista de Verificação GKS",
+        chk_entry: "Chegada na Coreia e Check-in no Dormitório",
+        chk_bank: "Abrir Conta no Banco Hana/Kookmin",
+        chk_arc: "Agendamento do Cartão de Registro (ARC)",
+        chk_nhis: "Inscrição no Seguro de Saúde Nacional",
+        chk_sim: "Chip de Celular Coreano / USIM",
+        emergency_title: "Telefones de Emergência",
+        help_immigration: "Centro de Imigração",
+        help_emergency: "Polícia / Bombeiros / Médicos",
+        help_niied: "Mesa GKS NIIED",
+        map_title: "Mapa do Campus e da Cidade",
+        map_subtitle: "Locais essenciais para estudantes internacionais",
+        map_filter_all: "Todos os Locais",
+        map_filter_food: "Comida & Cafés",
+        map_filter_shopping: "Compras",
+        map_filter_services: "Imigração & Bancos",
+        food_title: "Restaurantes Universitários & Guia Halal",
+        food_subtitle: "Refeitórios econômicos, comida halal certificada e lojas 24h",
+        food_1_title: "Refeitório Estudantil (Prédio 63)",
+        food_1_desc: "Refeições coreanas diárias baratas, estação de lámen e sorvete.",
+        food_2_title: "Seoul Halal Kebab & Curry",
+        food_2_desc: "Pratos e kebabs halal certificados ao lado da saída 3 do metrô.",
+        food_3_title: "Loja de Conveniência GS25 24/7",
+        food_3_desc: "Máquina de lámen instantâneo, recarga de T-Money e pratos prontos.",
+        badge_budget: "3.500~5.500 KRW",
+        badge_halal: "Certificado Halal",
+        badge_247: "24 Horas",
+        btn_show_map: "Ver no Mapa",
+        shop_title: "Compras e Essenciais",
+        shop_subtitle: "Onde comprar itens para casa baratos e móveis usados",
+        shop_1_title: "Daiso (Filial Sillim)",
+        shop_1_desc: "Essencial para o dormitório: adaptadores, caixas organizadoras e louças.",
+        shop_2_title: "Hipermercado E-Mart",
+        shop_2_desc: "Supermercado para alimentos frescos, panelas de arroz e eletrônicos.",
+        shop_3_title: "Karrot Market (당근마켓)",
+        shop_3_desc: "App #1 na Coreia para comprar livros, bicicletas e móveis usados.",
+        badge_groceries: "Mercado & Tecnologia",
+        badge_secondhand: "App de Usados",
+        btn_open_app: "Abrir Guia",
+        ocr_title: "Scanner de Documentos e OCR",
+        ocr_subtitle: "Digitalize avisos da universidade ou formulários de visto para tradução rápida",
+        ocr_drop_text: "Clique ou arraste um documento em coreano aqui",
+        ocr_drop_sub: "Suporta PNG, JPG, PDF",
+        ocr_preset_label: "Ou teste com documentos de exemplo:",
+        sample_1_title: "Aviso do Dormitório",
+        sample_1_sub: "Inspeção de incêndio e regras",
+        sample_2_title: "Formulário de Imigração nº 34",
+        sample_2_sub: "Solicitação do Cartão ARC",
+        ocr_scanning: "Extraindo texto em coreano e traduzindo...",
+        ocr_results_title: "Resultado da Análise OCR",
+        ocr_raw_label: "Texto Original (Coreano):",
+        ocr_trans_label: "Tradução (Idioma ativo):",
+        btn_copy_text: "Copiar Tradução"
       }
     };
 
-    // Global Map Handle
-    let map = null;
-    let markersGroup = null;
+    let currentLang = 'en';
 
-    const locations = [
-      { lat: 37.5598, lng: 126.9370, title: "Yonsei Main Campus", type: "food" },
-      { lat: 37.5580, lng: 126.9350, title: "Student Cafeteria 101", type: "food" },
-      { lat: 37.5570, lng: 126.9340, title: "Makan Halal Restaurant", type: "food" },
-      { lat: 37.5560, lng: 126.9375, title: "GS25 Convenience Store", type: "food" },
-      { lat: 37.5555, lng: 126.9365, title: "Daiso Sinchon Branch", type: "shopping" },
-      { lat: 37.5510, lng: 126.9320, title: "E-Mart Supermarket", type: "shopping" }
-    ];
-
-    function initMap() {
-      if (map) return;
-      map = L.map('interactive-map').setView([37.5565, 126.9355], 15);
+    function changeLanguage(lang) {
+      currentLang = lang;
       
-      // HD Dark Tile Layer
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        attribution: '©️ OpenStreetMap ©️ CARTO'
-      }).addTo(map);
+      // Update select values to stay synced
+      document.getElementById('lang-select-desktop').value = lang;
+      document.getElementById('lang-select-mobile').value = lang;
 
-      markersGroup = L.layerGroup().addTo(map);
-      renderMarkers('all');
-    }
-
-    function renderMarkers(filterType) {
-      if (!markersGroup) return;
-      markersGroup.clearLayers();
-
-      locations.forEach(loc => {
-        if (filterType === 'all' || loc.type === filterType) {
-          const marker = L.marker([loc.lat, loc.lng]).bindPopup(⁠ <b>${loc.title}</b> ⁠, { className: 'custom-popup' });
-          markersGroup.addLayer(marker);
-        }
-      });
-    }
-
-    function filterMap(type) {
-      renderMarkers(type);
-    }
-
-    function focusOnMap(lat, lng, title) {
-      switchTab('map');
-      setTimeout(() => {
-        map.setView([lat, lng], 17, { animate: true });
-        L.popup({ className: 'custom-popup' })
-          .setLatLng([lat, lng])
-          .setContent(⁠ <b>${title}</b> ⁠)
-          .openOn(map);
-      }, 200);
-    }
-
-    // Tab Switcher
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.getElementById('tab-' + tabId).classList.remove('hidden');
-
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border', 'border-blue-500/30');
-        btn.classList.add('text-slate-400');
-      });
-
-      const activeBtn = document.getElementById('btn-' + tabId);
-      if (activeBtn) {
-        activeBtn.classList.add('bg-blue-600/20', 'text-blue-400', 'border', 'border-blue-500/30');
-        activeBtn.classList.remove('text-slate-400');
-      }
-
-      if (tabId === 'map') {
-        setTimeout(() => {
-          initMap();
-          map.invalidateSize();
-        }, 150);
-      }
-    }
-
-    // Language Change Handler
-    function changeLanguage() {
-      const lang = document.getElementById('langSelect').value;
-      const dict = i18n[lang] || i18n['en'];
-
-      // Apply RTL for Arabic
+      // Handle RTL for Arabic
       if (lang === 'ar') {
         document.body.setAttribute('dir', 'rtl');
       } else {
-        document.body.removeAttribute('dir');
+        document.body.setAttribute('dir', 'ltr');
       }
 
-      // Replace DOM Text
+      const dict = translations[lang] || translations.en;
+
+      // Update text elements
       document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if (dict[key]) {
           el.innerText = dict[key];
         }
       });
+
+      // Update input placeholders
+      document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (dict[key]) {
+          el.placeholder = dict[key];
+        }
+      });
+
+      // Refresh OCR translation text if visible
+      updateOCRTranslationText();
     }
 
-    // Interactive AI Chat Simulation
-    function sendMessage() {
-      const input = document.getElementById('userInput');
+    /* ==========================================================================
+       2. TAB SWITCHING ENGINE
+       ========================================================================== */
+    function switchTab(tabId) {
+      // Hide all contents
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      });
+
+      // Show targeted tab
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) {
+        target.classList.remove('hidden');
+        if (tabId === 'dashboard' || tabId === 'map') {
+          target.classList.add('flex');
+        }
+      }
+
+      // Update Desktop Nav styles
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/20');
+        btn.classList.add('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
+      });
+
+      const activeDesktopBtn = document.getElementById(`nav-${tabId}`);
+      if (activeDesktopBtn) {
+        activeDesktopBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-600/20');
+        activeDesktopBtn.classList.remove('text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
+      }
+
+      // Update Mobile Nav styles
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('text-indigo-400');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeMobileBtn = document.getElementById(`mobile-nav-${tabId}`);
+      if (activeMobileBtn) {
+        activeMobileBtn.classList.add('text-indigo-400');
+        activeMobileBtn.classList.remove('text-slate-400');
+      }
+
+      // If switched to Map, force Leaflet redraw
+      if (tabId === 'map' && map) {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 150);
+      }
+    }
+
+    /* ==========================================================================
+       3. LEAFLET HD DARK MAP INTEGRATION & "SHOW ON MAP"
+       ========================================================================== */
+    let map = null;
+    let mapMarkers = [];
+
+    const mapLocations = [
+      { id: 1, name: "Student Cafeteria (Bldg 63)", category: "food", lat: 37.4598, lng: 126.9519, desc: "Building 63, SNU Campus. Daily affordable Korean meals." },
+      { id: 2, name: "Seoul Halal Kebab & Curry", category: "food", lat: 37.4801, lng: 126.9525, desc: "Certified Halal meals near Station Exit 3." },
+      { id: 3, name: "24/7 GS25 Convenience Store", category: "food", lat: 37.4682, lng: 126.9538, desc: "Ramen station & T-Money card top up." },
+      { id: 4, name: "Daiso Sillim Branch", category: "shopping", lat: 37.4842, lng: 126.9298, desc: "Houseware, stationery, and dorm essentials." },
+      { id: 5, name: "E-Mart Guro Store", category: "shopping", lat: 37.4820, lng: 126.9015, desc: "Large grocery market & household appliances." },
+      { id: 6, name: "Seoul Immigration Office (Southern Branch)", category: "services", lat: 37.5092, lng: 126.8805, desc: "Official immigration center for ARC issuance & visa extension." },
+      { id: 7, name: "Hana Bank Campus Branch", category: "services", lat: 37.4602, lng: 126.9510, desc: "GKS stipend account issuance & foreign currency exchange." }
+    ];
+
+    function initMap() {
+      if (map) return;
+
+      // Default center around Seoul National University area
+      map = L.map('map-container').setView([37.4700, 126.9450], 13);
+
+      // Dark tiles standard OpenStreetMap with dark pane inversion CSS applied
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      // Add Markers
+      mapLocations.forEach(loc => {
+        const marker = L.marker([loc.lat, loc.lng]).addTo(map);
+        marker.bindPopup(`
+          <div class="p-1">
+            <h4 class="font-bold text-xs text-indigo-400 mb-1">${loc.name}</h4>
+            <p class="text-[11px] text-slate-300 leading-tight">${loc.desc}</p>
+          </div>
+        `);
+        marker.category = loc.category;
+        marker.locName = loc.name;
+        mapMarkers.push(marker);
+      });
+    }
+
+    function filterMap(category) {
+      // Button UI styles
+      document.querySelectorAll('.map-filter-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('bg-slate-800', 'text-slate-300');
+      });
+
+      const activeBtn = document.getElementById(`filter-${category}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-indigo-600', 'text-white');
+        activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+      }
+
+      // Show/Hide markers
+      mapMarkers.forEach(m => {
+        if (category === 'all' || m.category === category) {
+          map.addLayer(m);
+        } else {
+          map.removeLayer(m);
+        }
+      });
+    }
+
+    // "Show on Map" cross-tab action
+    function showOnMap(lat, lng, placeName) {
+      switchTab('map');
+
+      setTimeout(() => {
+        if (!map) initMap();
+        map.invalidateSize();
+        map.flyTo([lat, lng], 15, { duration: 1.2 });
+
+        // Find and trigger popup
+        const marker = mapMarkers.find(m => Math.abs(m.getLatLng().lat - lat) < 0.001);
+        if (marker) {
+          setTimeout(() => {
+            marker.openPopup();
+          }, 1200);
+        }
+      }, 100);
+    }
+
+    /* ==========================================================================
+       4. AI CHAT ASSISTANT & KNOWLEDGE BASE
+       ========================================================================== */
+    const aiKnowledge = {
+      arc: {
+        en: "To apply for your Alien Registration Card (ARC):\n1. Visit hikorea.go.kr and book an appointment at your jurisdiction Immigration Office.\n2. Prepare: Passport, Application Form 34, 1 Passport Photo (white background), Certificate of Enrollment, Residence Proof (Dorm certificate/lease), and 30,000 KRW fee.\n3. Receive card in ~3-4 weeks.",
+        ko: "외국인등록증(ARC) 발급 안내:\n1. 하이코리아(hikorea.go.kr)에 접속하여 관할 출입국관리사무소 방문 예약을 신청하세요.\n2. 필요 서류: 여권, 통합신청서(34호), 여권용 사진 1매, 재학증명서, 거주지 입증서류(기숙사 입주확인서 등), 수수료 30,000원.\n3. 발급에는 약 3~4주가 소요됩니다.",
+        ru: "Для получения карты ARC:\n1. Запишитесь на прием на сайте hikorea.go.kr.\n2. Подготовьте: Паспорт, Заявление №34, 1 фото, Справку об учебе, Договор аренды/справку из общежития и пошлину 30,000 KRW.\n3. Карта готовится около 3-4 недель.",
+        ar: "للحصول على بطاقة الإقامة (ARC):\n1. قم بزيارة موقع hikorea.go.kr واحجز موعداً في مكتب الهجرة التابع لمنطقتك.\n2. جهّز: جواز السفر، نموذج الطلب رقم 34، صورة شخصية، شهادة القبول/التسجيل، إثبات السكن، ورسوم 30,000วอน.\n3. تستغرق البطاقة حوالي 3 إلى 4 أسابيع."
+      },
+      visa: {
+        en: "D-2 Visa Extension Guidelines:\n• Apply 4 months before visa expiration on HiKorea or at Immigration.\n• Required documents: Passport, Enrollment Cert, Transcript (GPA > 2.0 required), Proof of Funds (NIIED GKS scholarship cert satisfies this), and fee.",
+        ko: "D-2 비자 연장 안내:\n• 만료일 4개월 전부터 하이코리아 온라인 또는 출입국 방문 신청 가능.\n• 필요 서류: 여권, 재학증명서, 성적증명서(평점 2.0 이상), 장학금 수혜 증명서(NIIED 발급).",
+        ru: "Продление визы D-2:\n• Подавайте за 4 месяца до истечения визы через HiKorea.\n• Документы: Паспорт, Справка об учебе, Выписка оценок (GPA > 2.0), Сертификат стипендиата GKS."
+      },
+      bank: {
+        en: "Opening a Korean Bank Account for GKS:\n• Visit Hana Bank or Kookmin (KB) with your Passport, ARC (or temporary student ID/Certificate of Enrollment).\n• NIIED monthly stipend (~1,000,000 KRW) will be wired directly to this account on the 25th of every month.",
+        ko: "GKS 장학생 은행 계좌 개설:\n• 여권, 외국인등록증(또는 재학증명서)을 지참하여 하나은행 또는 국민은행 방문.\n• 매월 25일 NIIED 생활비(약 1,000,000원)가 해당 계좌로 지급됩니다.",
+        ru: "Открытие банковского счета GKS:\n• Посетите банк Hana или KB с паспортом и картой ARC (или справкой об учебе).\n• Ежемесячная стипендия NIIED (~1,000,000 KRW) перечисляется 25-го числа каждого месяца."
+      },
+      work: {
+        en: "Part-time Work (Siganje Chwi-eop) Rules:\n• GKS Scholars on D-2 visa MUST obtain permission from NIIED & Immigration first!\n• Requires TOPIK Level 4+ for undergraduate/graduate students to work up to 20 hours/week during semester.",
+        ko: "시간제 취업(알바) 허가 규정:\n• GKS 장학생은 D-2 비자로 알바 시 NIIED 및 출입국사무소의 사전 허가가 필수입니다.\n• TOPIK 4급 이상 보유 시 학기 중 주당 최대 20시간 가능합니다."
+      }
+    };
+
+    function initChatWelcome() {
+      const chatBox = document.getElementById('chat-messages');
+      chatBox.innerHTML = `
+        <div class="flex items-start gap-2.5">
+          <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 text-xs shrink-0 mt-0.5">
+            <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-3 text-xs text-slate-200 max-w-[85%] leading-relaxed shadow-sm">
+            <p class="font-semibold text-indigo-300 mb-1">Annyeonghaseyo! 👋</p>
+            <p>I am your <strong>GKS Campus Bridge AI Assistant</strong>. Ask me anything about D-2 Visa rules, ARC appointment booking, bank stipend accounts, TOPIK requirements, or surviving campus life in South Korea!</p>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function appendMessage(role, text) {
+      const chatBox = document.getElementById('chat-messages');
+      const isUser = role === 'user';
+
+      const msgHTML = `
+        <div class="flex items-start gap-2.5 ${isUser ? 'justify-end' : ''}">
+          ${!isUser ? `
+            <div class="w-7 h-7 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 text-xs shrink-0 mt-0.5">
+              <i data-lucide="bot" class="w-3.5 h-3.5"></i>
+            </div>
+          ` : ''}
+          <div class="${isUser ? 'bg-indigo-600 text-white' : 'bg-slate-800/80 border border-slate-700/60 text-slate-200'} rounded-2xl p-3 text-xs max-w-[85%] leading-relaxed whitespace-pre-line shadow-sm">
+            ${text}
+          </div>
+          ${isUser ? `
+            <div class="w-7 h-7 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-slate-300 text-xs shrink-0 mt-0.5">
+              <i data-lucide="user" class="w-3.5 h-3.5"></i>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      chatBox.insertAdjacentHTML('beforeend', msgHTML);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      lucide.createIcons();
+    }
+
+    function generateAIResponse(userText) {
+      const query = userText.toLowerCase();
+
+      // Typing indicator
+      const chatBox = document.getElementById('chat-messages');
+      const typingId = 'typing-' + Date.now();
+      const typingHTML = `
+        <div id="${typingId}" class="flex items-center gap-2 text-xs text-slate-400 p-2">
+          <div class="w-2 h-2 rounded-full bg-indigo-500 animate-bounce"></div>
+          <div class="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.2s]"></div>
+          <div class="w-2 h-2 rounded-full bg-indigo-500 animate-bounce [animation-delay:0.4s]"></div>
+        </div>
+      `;
+      chatBox.insertAdjacentHTML('beforeend', typingHTML);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      setTimeout(() => {
+        const indicator = document.getElementById(typingId);
+        if (indicator) indicator.remove();
+
+        let response = "";
+
+        if (query.includes('arc') || query.includes('registration') || query.includes('등록증')) {
+          response = aiKnowledge.arc[currentLang] || aiKnowledge.arc.en;
+        } else if (query.includes('visa') || query.includes('d-2') || query.includes('비자')) {
+          response = aiKnowledge.visa[currentLang] || aiKnowledge.visa.en;
+        } else if (query.includes('bank') || query.includes('account') || query.includes('통장') || query.includes('stipend')) {
+          response = aiKnowledge.bank[currentLang] || aiKnowledge.bank.en;
+        } else if (query.includes('work') || query.includes('job') || query.includes('알바') || query.includes('part-time')) {
+          response = aiKnowledge.work[currentLang] || aiKnowledge.work.en;
+        } else {
+          response = `Thank you for asking! Regarding "${userText}":\n• As a GKS scholar in South Korea, always check with your university's OIA (Office of International Affairs).\n• Make sure your ARC and passport details match on all university documents.\n• Need urgent immigration advice? Call the official multi-language hotline at 1345!`;
+        }
+
+        appendMessage('bot', response);
+      }, 700);
+    }
+
+    function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
       const text = input.value.trim();
       if (!text) return;
 
-      appendMessage(text, 'user');
+      appendMessage('user', text);
       input.value = '';
+      generateAIResponse(text);
+    }
+
+    function sendQuickQuery(type) {
+      let prompt = "";
+      if (type === 'arc') prompt = "How do I get my Alien Registration Card (ARC)?";
+      if (type === 'visa') prompt = "What are the rules for D-2 visa extension?";
+      if (type === 'bank') prompt = "How do I open a bank account for GKS stipend?";
+      if (type === 'work') prompt = "Can GKS scholars do part-time work (알바)?";
+
+      appendMessage('user', prompt);
+      generateAIResponse(prompt);
+    }
+
+    function clearChat() {
+      initChatWelcome();
+    }
+
+    /* ==========================================================================
+       5. SETTLEMENT CHECKLIST TRACKER
+       ========================================================================== */
+    function toggleChecklist() {
+      const checkboxes = document.querySelectorAll('#tab-dashboard input[type="checkbox"]');
+      let checkedCount = 0;
+      checkboxes.forEach(cb => {
+        if (cb.checked) checkedCount++;
+      });
+
+      const percentage = Math.round((checkedCount / checkboxes.length) * 100);
+      document.getElementById('tracker-percentage').innerText = `${percentage}%`;
+      document.getElementById('tracker-bar').style.width = `${percentage}%`;
+    }
+
+    /* ==========================================================================
+       6. DOCUMENT OCR SCANNER & SIMULATION
+       ========================================================================== */
+    const ocrSamples = {
+      notice: {
+        raw: "[2026-2학기 기숙사 소방점검 안내]\n일시: 10월 15일 14:00 - 17:00\n대상: 국제관 전 객실. 관리인이 직접 방문 점검할 예정이오니 협조 바랍니다.",
+        translations: {
+          en: "[2026-2nd Semester Dormitory Fire Safety Inspection Notice]\n• Date/Time: October 15, 14:00 - 17:00\n• Target: All rooms in the International House.\n• Details: Dormitory inspectors will enter rooms directly for safety equipment checks. Your cooperation is required.",
+          ko: "[2026-2학기 기숙사 소방점검 안내]\n• 일시: 10월 15일 14:00 - 17:00\n• 대상: 국제관 전 객실\n• 내용: 관리인이 소방 시설 점검을 위해 객실을 직접 방문합니다. 협조 바랍니다.",
+          ru: "[Извещение о противопожарной инспекции в общежитии]\n• Дата: 15 октября, 14:00 - 17:00\n• Где: Все комнаты Международного корпуса.\n• Детали: Инспекция зайдет в комнаты для проверки оборудования. Просим оказать содействие.",
+          ar: "[إشعار تفتيش السلامة من الحريق في السكن الجامعي]\n• التاريخ والوقت: 15 أكتوبر، 14:00 - 17:00\n• النطاق: جميع غرف مبنى الطلاب الدوليين.\n• التفاصيل: سيقوم المفتشون بدخول الغرف مباشرة لفحص معدات الحريق. نرجو تعاونكم."
+        }
+      },
+      visa: {
+        raw: "[출입국관리법 시행규칙 - 외국인등록 신청서]\n신청인 성명, 체류자격(D-2), 관할 출입국관서, 수수료 30,000원 납부 확인.",
+        translations: {
+          en: "[Immigration Control Act - Alien Registration Application Form 34]\n• Applicant Name, Qualification of Stay (D-2), Jurisdiction Office, Fee Payment Confirmation (30,000 KRW).",
+          ko: "[출입국관리법 시행규칙 - 외국인등록 신청서]\n• 신청인 성명, 체류자격(D-2), 관할 출입국관서, 수수료 30,000원 납부 확인 완료.",
+          ru: "[Заявление на регистрацию иностранного гражданина - Форма 34]\n• ФИО заявителя, Статус пребывания (D-2), Юрисдикция, Оплата пошлины 30,000 KRW."
+        }
+      }
+    };
+
+    let activeOcrSample = 'notice';
+
+    function triggerPresetOCR(sampleKey) {
+      activeOcrSample = sampleKey;
+      const loading = document.getElementById('ocr-loading');
+      const results = document.getElementById('ocr-results');
+
+      results.classList.add('hidden');
+      loading.classList.remove('hidden');
+      loading.classList.add('flex');
 
       setTimeout(() => {
-        const lang = document.getElementById('langSelect').value;
-        let response = "GKS AI Assistant: For official inquiry on " + text + ", consult HiKorea.go.kr or your Campus Global Center.";
+        loading.classList.add('hidden');
+        loading.classList.remove('flex');
+        results.classList.remove('hidden');
 
-        const lower = text.toLowerCase();
-        if (lower.includes('visa') || lower.includes('d-2') || lower.includes('виз')) {
-          response = lang === 'ru' ? "Для продления визы D-2 отправьте: справку об учебе, выписку из банка и заявление на сайте HiKorea.go.kr." : "To extend D-2 visa, submit your Certificate of Enrollment, Bank Balance proof, and application via HiKorea.go.kr.";
-        } else if (lower.includes('daiso') || lower.includes('даисо')) {
-          response = lang === 'ru' ? "Ближайший Daiso находится около станции Sinchon (выход 8). 5 этажей доступных товаров!" : "Nearest Daiso is near Sinchon Station Exit 8 with 5 floors of budget dorm goods!";
-        } else if (lower.includes('bank') || lower.includes('банк')) {
-          response = lang === 'ru' ? "Для открытия счета в банке (Woori, Hana) возьмите паспорт, карту ARC и справку об учебе." : "To open a Korean bank account, bring your Passport, ARC card, and Enrollment Certificate to Woori/Hana Bank.";
-        }
-
-        appendMessage(response, 'ai');
-      }, 400);
+        const data = ocrSamples[sampleKey];
+        document.getElementById('ocr-raw').innerText = data.raw;
+        updateOCRTranslationText();
+      }, 600);
     }
 
-    function quickQuery(type) {
-      const input = document.getElementById('userInput');
-      if (type === 'visa') input.value = "How to extend D-2 visa?";
-      if (type === 'daiso') input.value = "Where is Daiso?";
-      if (type === 'bank') input.value = "How to open bank account?";
-      sendMessage();
+    function updateOCRTranslationText() {
+      const data = ocrSamples[activeOcrSample];
+      if (!data) return;
+      const translatedText = data.translations[currentLang] || data.translations.en;
+      document.getElementById('ocr-translated').innerText = translatedText;
     }
 
-    function appendMessage(msg, sender) {
-      const history = document.getElementById('chatHistory');
-      const div = document.createElement('div');
-      div.className = sender === 'user' 
-        ? "bg-blue-600/20 border border-blue-500/30 p-3 rounded-xl max-w-[85%] text-slate-200 self-end ml-auto text-xs"
-        : "bg-slate-950 border border-slate-800 p-3 rounded-xl max-w-[85%] text-slate-300 text-xs";
-      div.innerText = msg;
-      history.appendChild(div);
-      history.scrollTop = history.scrollHeight;
+    function copyOCRText() {
+      const text = document.getElementById('ocr-translated').innerText;
+      
+      // Fallback execCommand for iframe safety
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = text;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempTextArea);
+
+      const btnSpan = document.querySelector('[data-i18n="btn_copy_text"]');
+      if (btnSpan) {
+        const orig = btnSpan.innerText;
+        btnSpan.innerText = "Copied!";
+        setTimeout(() => {
+          btnSpan.innerText = orig;
+        }, 1500);
+      }
     }
 
-    // OCR Simulator
-    function runOCR() {
-      document.getElementById('ocrResult').classList.remove('hidden');
-    }
+    /* ==========================================================================
+       7. ON LOAD INITIALIZATION
+       ========================================================================== */
+    window.onload = function() {
+      // Initialize icons
+      lucide.createIcons();
+
+      // Initialize AI Chat
+      initChatWelcome();
+
+      // Initialize Map
+      initMap();
+
+      // Set default language
+      changeLanguage('en');
+    };
   </script>
 </body>
 </html>
